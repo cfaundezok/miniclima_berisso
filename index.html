@@ -4,175 +4,738 @@
 <meta charset="UTF-8">
 <title>Estación Meteorológica – EEST N°2</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root {
-  --bg:#080e1a;
-  --surface:rgba(255,255,255,0.045);
-  --border:rgba(255,255,255,0.08);
-  --accent:#38bdf8;
-  --accent2:#818cf8;
-  --green:#4ade80;
-  --text:#e2e8f0;
-  --muted:rgba(226,232,240,0.45);
-  --radius:16px;
+--bg:        #080e1a;
+--surface:   rgba(255,255,255,0.045);
+--border:    rgba(255,255,255,0.08);
+--accent:    #38bdf8;
+--accent2:   #818cf8;
+--green:     #4ade80;
+--text:      #e2e8f0;
+--muted:     rgba(226,232,240,0.45);
+--radius:    16px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+background: var(--bg);
+color: var(--text);
+font-family: 'DM Sans', sans-serif;
+min-height: 100vh;
+overflow-x: hidden;
 }
 
-*{box-sizing:border-box;margin:0;padding:0;}
-
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:'DM Sans',sans-serif;
-  padding:20px;
+body::before {
+content: '';
+position: fixed; inset: 0;
+background:
+radial-gradient(ellipse 80% 50% at 20% 10%, rgba(56,189,248,0.07) 0%, transparent 60%),
+radial-gradient(ellipse 60% 40% at 80% 80%, rgba(129,140,248,0.06) 0%, transparent 60%);
+pointer-events: none; z-index: 0;
+transition: background 1.5s ease;
+}
+body.calor::before {
+background:
+radial-gradient(ellipse 80% 50% at 20% 10%, rgba(251,113,133,0.12) 0%, transparent 60%),
+radial-gradient(ellipse 60% 40% at 80% 80%, rgba(251,191,36,0.08) 0%, transparent 60%);
+}
+body.frio::before {
+background:
+radial-gradient(ellipse 80% 50% at 20% 10%, rgba(147,197,253,0.10) 0%, transparent 60%),
+radial-gradient(ellipse 60% 40% at 80% 80%, rgba(129,140,248,0.08) 0%, transparent 60%);
+}
+body.lluvia::before {
+background:
+radial-gradient(ellipse 80% 60% at 50% 0%, rgba(100,116,139,0.18) 0%, transparent 70%);
 }
 
-h1{
-  font-size:28px;
-  margin-bottom:5px;
+/* ---- ALERTA SUPERIOR ---- */
+.alert-banner {
+display: none;
+position: fixed;
+top: 0; left: 0; right: 0;
+z-index: 200;
+padding: 10px 20px;
+font-size: 14px; font-weight: 600;
+text-align: center;
+animation: slideDown 0.4s ease;
+gap: 8px; align-items: center; justify-content: center;
+}
+.alert-banner.visible { display: flex; }
+.alert-banner.lluvia-alert {
+background: linear-gradient(90deg, #1e3a5f, #1d4ed8);
+color: #bfdbfe; border-bottom: 1px solid rgba(96,165,250,0.3);
+}
+.alert-banner.viento-alert {
+background: linear-gradient(90deg, #422006, #92400e);
+color: #fde68a; border-bottom: 1px solid rgba(251,191,36,0.3);
+}
+.alert-banner.calor-alert {
+background: linear-gradient(90deg, #450a0a, #b91c1c);
+color: #fecaca; border-bottom: 1px solid rgba(248,113,113,0.3);
+}
+@keyframes slideDown {
+from { transform: translateY(-100%); opacity: 0; }
+to   { transform: translateY(0);     opacity: 1; }
 }
 
-.sub{
-  color:var(--muted);
-  margin-bottom:20px;
+/* ---- NAV ---- */
+nav {
+position: sticky;
+top: 0; z-index: 100;
+display: flex; align-items: center;
+justify-content: space-between;
+padding: 0 20px; height: 58px;
+background: rgba(8,14,26,0.92);
+backdrop-filter: blur(20px);
+border-bottom: 1px solid var(--border);
+transition: top 0.3s;
+}
+.nav-brand { display: flex; flex-direction: column; gap: 1px; }
+.nav-title {
+font-family: 'Space Mono', monospace;
+font-size: 13px; font-weight: 700;
+color: var(--accent); letter-spacing: .05em; text-transform: uppercase;
+}
+.nav-sub { font-size: 10px; color: var(--muted); }
+.nav-right { display: flex; align-items: center; gap: 8px; }
+.nav-links { display: flex; gap: 2px; }
+.nav-links a {
+text-decoration: none; font-size: 13px; font-weight: 600;
+padding: 6px 14px; border-radius: 8px; color: var(--muted);
+transition: all .2s;
+}
+.nav-links a:hover  { color: var(--text); background: var(--surface); }
+.nav-links a.active { color: var(--accent); background: rgba(56,189,248,.1); }
+.live-badge {
+display: flex; align-items: center; gap: 5px;
+font-family: 'Space Mono', monospace;
+font-size: 10px; color: var(--green);
+background: rgba(74,222,128,.08);
+border: 1px solid rgba(74,222,128,.2);
+border-radius: 20px; padding: 4px 10px;
+}
+.live-dot {
+width: 6px; height: 6px;
+background: var(--green); border-radius: 50%;
+animation: pulse 2s ease infinite;
+}
+@keyframes pulse {
+0%,100% { opacity:1; transform:scale(1); }
+50%      { opacity:.5; transform:scale(.85); }
 }
 
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:15px;
+/* ---- MAIN ---- */
+main {
+position: relative; z-index: 1;
+max-width: 960px; margin: 0 auto;
+padding: 24px 16px 80px;
 }
 
-.card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:20px;
-  text-align:center;
+/* ---- STATION BAR ---- */
+.station-bar {
+display: flex; flex-wrap: wrap; align-items: center;
+gap: 7px; margin-bottom: 20px;
+font-size: 11px; color: var(--muted);
+font-family: 'Space Mono', monospace;
+}
+.station-bar span {
+background: var(--surface); border: 1px solid var(--border);
+border-radius: 6px; padding: 4px 10px; white-space: nowrap;
 }
 
-.valor{
-  font-size:32px;
-  font-weight:600;
+/* ---- HERO ---- */
+.hero {
+display: flex; align-items: flex-end;
+justify-content: space-between;
+gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.temp-block { animation: fadeUp .6s ease both; }
+.temp-value {
+font-family: 'Space Mono', monospace;
+font-size: clamp(64px, 17vw, 110px);
+font-weight: 700; line-height: 1;
+    }
+    #temp {
+background: linear-gradient(135deg, #fff 40%, var(--accent));
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+.temp-unit {
+font-family: 'Space Mono', monospace;
+      font-size: clamp(22px, 4vw, 30px); opacity: .5;
+      font-size: clamp(22px, 4vw, 30px);
+      color: rgba(226,232,240,0.5);
+      -webkit-text-fill-color: rgba(226,232,240,0.5);
+}
+.temp-minmax {
+display: flex; gap: 14px; margin-top: 6px;
+font-family: 'Space Mono', monospace; font-size: 13px;
+}
+.temp-min { color: #60a5fa; }
+.temp-max { color: #fb923c; }
+
+.estado-bloque { text-align: right; animation: fadeUp .6s .1s ease both; }
+.estado-emoji  { font-size: 44px; line-height: 1; }
+.estado-texto  { font-size: 17px; font-weight: 600; margin-top: 4px; }
+.sensacion     { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.heat-index {
+display: inline-block; margin-top: 7px;
+font-size: 11px; font-weight: 600;
+padding: 3px 10px; border-radius: 20px;
+font-family: 'Space Mono', monospace;
+}
+.heat-index.bajo     { background:rgba(74,222,128,.12);  color:#4ade80; border:1px solid rgba(74,222,128,.25); }
+.heat-index.moderado { background:rgba(251,191,36,.12);  color:#fbbf24; border:1px solid rgba(251,191,36,.25); }
+.heat-index.alto     { background:rgba(251,146,60,.12);  color:#fb923c; border:1px solid rgba(251,146,60,.25); }
+.heat-index.extremo  { background:rgba(248,113,113,.15); color:#f87171; border:1px solid rgba(248,113,113,.3); }
+
+/* ---- CARDS ---- */
+.grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+gap: 12px; margin-bottom: 24px;
+}
+.card {
+background: var(--surface); border: 1px solid var(--border);
+border-radius: var(--radius); padding: 18px;
+position: relative; overflow: hidden;
+animation: fadeUp .5s ease both;
+transition: border-color .2s, transform .2s;
+}
+.card:hover { border-color: rgba(56,189,248,.3); transform: translateY(-2px); }
+.card::before {
+content:''; position:absolute;
+top:0; left:0; right:0; height:2px;
+background: linear-gradient(90deg, var(--accent), transparent); opacity:.4;
+}
+.card-icon  { font-size: 20px; margin-bottom: 8px; display: block; }
+.card-label {
+font-size: 10px; font-weight: 600;
+text-transform: uppercase; letter-spacing: .1em;
+color: var(--muted); margin-bottom: 3px;
+}
+.card-value {
+font-family: 'Space Mono', monospace;
+font-size: 24px; font-weight: 700; color: #fff;
+}
+.card-unit { font-size: 12px; color: var(--muted); margin-left: 2px; }
+.hum-bar {
+height: 3px; background: rgba(255,255,255,.1);
+border-radius: 4px; margin-top: 8px; overflow: hidden;
+}
+.hum-fill {
+height: 100%;
+background: linear-gradient(90deg, var(--accent2), var(--accent));
+border-radius: 4px; transition: width 1s ease;
+}
+.card:nth-child(2) { animation-delay:.05s; }
+.card:nth-child(3) { animation-delay:.10s; }
+.card:nth-child(4) { animation-delay:.15s; }
+.card:nth-child(5) { animation-delay:.20s; }
+
+/* ---- GRÁFICOS ---- */
+.charts-section { margin-bottom: 24px; }
+.charts-header {
+display: flex; align-items: center;
+justify-content: space-between;
+margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+}
+.charts-title {
+font-family: 'Space Mono', monospace;
+font-size: 11px; font-weight: 700;
+text-transform: uppercase; letter-spacing: .1em; color: var(--muted);
+}
+.chart-tabs {
+display: flex; gap: 3px;
+background: var(--surface);
+border: 1px solid var(--border);
+border-radius: 10px; padding: 3px;
+}
+.chart-tab {
+font-family: 'DM Sans', sans-serif;
+font-size: 12px; font-weight: 600;
+padding: 5px 11px; border-radius: 7px;
+color: var(--muted); cursor: pointer;
+border: none; background: transparent;
+transition: all .2s;
+}
+.chart-tab.active { background: rgba(56,189,248,.15); color: var(--accent); }
+.chart-wrap {
+background: var(--surface); border: 1px solid var(--border);
+border-radius: var(--radius); padding: 20px;
+}
+.chart-empty {
+text-align: center; padding: 36px 20px;
+color: var(--muted); font-size: 13px;
+}
+.chart-empty span { font-size: 26px; display: block; margin-bottom: 8px; }
+canvas { max-height: 220px; }
+
+/* ---- FOOTER ---- */
+.footer-bar {
+display: flex; justify-content: space-between; align-items: center;
+padding: 12px 16px;
+background: var(--surface); border: 1px solid var(--border);
+border-radius: var(--radius);
+font-size: 11px; color: var(--muted);
+font-family: 'Space Mono', monospace;
+flex-wrap: wrap; gap: 6px;
 }
 
-.label{
-  font-size:14px;
-  color:var(--muted);
+/* ---- LOADING ---- */
+.loading-overlay {
+position: fixed; inset: 0; background: var(--bg);
+display: flex; flex-direction: column;
+align-items: center; justify-content: center;
+z-index: 999; gap: 14px; transition: opacity .5s;
+}
+.loading-overlay.hidden { opacity: 0; pointer-events: none; }
+.loader-ring {
+width: 44px; height: 44px;
+border: 3px solid var(--border);
+border-top-color: var(--accent);
+border-radius: 50%; animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-text {
+font-family: 'Space Mono', monospace;
+font-size: 11px; color: var(--muted); letter-spacing: .1em;
 }
 
-.temp{
-  font-size:60px;
-  margin:20px 0;
+@keyframes fadeUp {
+from { opacity: 0; transform: translateY(16px); }
+to   { opacity: 1; transform: translateY(0); }
 }
 
-.estado{
-  margin-top:10px;
-  font-size:18px;
-}
+/* ============================
+      RESPONSIVE MÓVIL
+   ============================ */
+@media (max-width: 600px) {
+/* nav compacto */
+.nav-sub    { display: none; }
+.live-badge { padding: 3px 8px; font-size: 9px; }
+.nav-links a{ padding: 6px 10px; font-size: 12px; }
 
-.footer{
-  margin-top:30px;
-  font-size:14px;
-  color:var(--muted);
-}
+/* hero apilado */
+.hero { flex-direction: column; align-items: flex-start; gap: 6px; }
+.estado-bloque { text-align: left; }
+.estado-emoji  { font-size: 36px; }
 
-.error{
-  margin-top:10px;
-  color:#f87171;
-  display:none;
+/* grid 2 columnas en mobile */
+.grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+.card { padding: 14px; }
+.card-value { font-size: 20px; }
+.card-icon  { font-size: 18px; margin-bottom: 6px; }
+
+/* station bar scroll horizontal */
+.station-bar { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+.station-bar::-webkit-scrollbar { height: 3px; }
+.station-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius:4px; }
+
+/* pestañas de gráfico más pequeñas */
+.chart-tab  { padding: 4px 8px; font-size: 11px; }
+canvas      { max-height: 180px; }
+
+/* footer apilado */
+.footer-bar { flex-direction: column; align-items: flex-start; gap: 4px; }
+
+main { padding: 14px 12px 80px; }
+
+/* alerta más compacta */
+.alert-banner { font-size: 12px; padding: 8px 14px; }
 }
 </style>
 </head>
-
 <body>
 
-<h1>Estación Meteorológica</h1>
-<div class="sub">EEST N°2 – Berisso</div>
+<!-- ALERTA SUPERIOR -->
+<div class="alert-banner" id="alert-banner">
+<span id="alert-icon">⚠️</span>
+<span id="alert-text">Alerta activa</span>
+</div>
 
-<div class="temp" id="temp">--°C</div>
-<div class="estado" id="estado">--</div>
+<!-- LOADING -->
+<div class="loading-overlay" id="loader">
+<div class="loader-ring"></div>
+<div class="loader-text">CONECTANDO CON LA ESTACIÓN...</div>
+</div>
 
+<!-- NAV -->
+<nav id="main-nav">
+<div class="nav-brand">
+<span class="nav-title">🌡️ MeteoEscuela</span>
+<span class="nav-sub">EEST N°2 "Ing. Emilio Rebuelto" – Berisso</span>
+</div>
+<div class="nav-right">
+<div class="nav-links">
+<a href="index.html" class="active">En vivo</a>
+<a href="aprende.html">¿Qué mide?</a>
+</div>
+<div class="live-badge">
+<div class="live-dot"></div>EN VIVO
+</div>
+</div>
+</nav>
+
+<main>
+
+<!-- INFO INSTITUCIONAL -->
+<div class="station-bar">
+<span>📍 Berisso, Bs As</span>
+<span>🏫 EEST N°2</span>
+<span>🏛️ Municipio de Berisso</span>
+<span>🔭 Fac. Astronomía – UNLP</span>
+</div>
+
+<!-- HERO TEMPERATURA -->
+<div class="hero">
+<div class="temp-block">
+<div class="temp-value">
+<span id="temp">--</span><span class="temp-unit">°C</span>
+</div>
+<div class="temp-minmax">
+<span class="temp-min">↓ <span id="temp-min">--</span>°C mín</span>
+<span class="temp-max">↑ <span id="temp-max">--</span>°C máx</span>
+</div>
+</div>
+<div class="estado-bloque">
+<div class="estado-emoji" id="estado-emoji">🌡️</div>
+<div class="estado-texto"  id="estado-texto">Cargando...</div>
+<div class="sensacion"     id="sensacion">Sensación térmica: --</div>
+<div id="heat-index-badge" class="heat-index bajo" style="display:none"></div>
+</div>
+</div>
+
+<!-- CARDS -->
 <div class="grid">
-
 <div class="card">
-  <div class="valor" id="hum">--%</div>
-  <div class="label">Humedad</div>
+<span class="card-icon">💧</span>
+<div class="card-label">Humedad</div>
+<div><span class="card-value" id="hum">--</span><span class="card-unit">%</span></div>
+<div class="hum-bar"><div class="hum-fill" id="hum-bar" style="width:0%"></div></div>
 </div>
-
 <div class="card">
-  <div class="valor" id="press">-- hPa</div>
-  <div class="label">Presión</div>
+<span class="card-icon">🌬️</span>
+<div class="card-label">Viento</div>
+<div><span class="card-value" id="viento">--</span><span class="card-unit">km/h</span></div>
 </div>
-
 <div class="card">
-  <div class="valor" id="wind">-- km/h</div>
-  <div class="label">Viento</div>
+<span class="card-icon">💨</span>
+<div class="card-label">Ráfagas</div>
+<div><span class="card-value" id="rafaga">--</span><span class="card-unit">km/h</span></div>
 </div>
-
 <div class="card">
-  <div class="valor" id="gust">-- km/h</div>
-  <div class="label">Ráfagas</div>
+<span class="card-icon">📊</span>
+<div class="card-label">Presión</div>
+<div><span class="card-value" id="pres">--</span><span class="card-unit">hPa</span></div>
 </div>
-
 <div class="card">
-  <div class="valor" id="rain">-- mm</div>
-  <div class="label">Lluvia</div>
+<span class="card-icon">🌧️</span>
+<div class="card-label">Lluvia</div>
+<div><span class="card-value" id="lluvia">--</span><span class="card-unit">mm</span></div>
+</div>
 </div>
 
-<div class="card">
-  <div class="valor" id="hora">--</div>
-  <div class="label">Actualizado</div>
+<!-- GRÁFICOS HISTÓRICOS -->
+<div class="charts-section">
+<div class="charts-header">
+      <div class="charts-title">📈 Histórico de la sesión</div>
+      <div class="charts-title">📈 Historial de esta sesión</div>
+<div class="chart-tabs">
+<button class="chart-tab active" onclick="cambiarGrafico('temp',  this)">Temp.</button>
+<button class="chart-tab"        onclick="cambiarGrafico('hum',   this)">Humedad</button>
+<button class="chart-tab"        onclick="cambiarGrafico('pres',  this)">Presión</button>
+<button class="chart-tab"        onclick="cambiarGrafico('lluvia',this)">Lluvia</button>
+</div>
+</div>
+<div class="chart-wrap">
+<div class="chart-empty" id="chart-empty">
+        <span>⏳</span>Acumulando datos... volvé en unos minutos.
+        <span>⏳</span>
+        Acumulando datos...<br>
+        <small style="font-size:11px;opacity:.6">El gráfico se llena mientras la página está abierta.<br>Cada 60 s llega un nuevo punto.</small>
+</div>
+<canvas id="miGrafico" style="display:none"></canvas>
+</div>
 </div>
 
+<!-- FOOTER -->
+<div class="footer-bar">
+<span id="hora">Conectando...</span>
+<span>⏱ Actualización cada 60 s</span>
 </div>
 
-<div class="error" id="error">Error al obtener datos</div>
-
-<div class="footer">
-Proyecto conjunto entre la escuela, el municipio y la universidad
-</div>
+</main>
 
 <script>
+/* —— CONFIG —— */
+const API = "https://script.google.com/macros/s/AKfycbzPlhvZM4vBx4wzdD44TXnG2e4BEf2ZmN0y5bupiB4L4aviVmuRliTFfglVYOiDXZEFsA/exec";
+const MAX_PUNTOS = 48; // últimas 48 lecturas ≈ 48 min
 
-const URL = "https://script.google.com/macros/s/AKfycbzPlhvZM4vBx4wzdD44TXnG2e4BEf2ZmN0y5bupiB4L4aviVmuRliTFfglVYOiDXZEFsA/exec";
+/* —— HISTORIAL EN MEMORIA —— */
+const hist = { h:[], temp:[], hum:[], pres:[], lluvia:[] };
+let tempMin = null, tempMax = null, fechaHoy = new Date().toDateString();
+let graficoActivo = 'temp', miChart = null;
 
-async function cargarDatos(){
-  try{
-    const res = await fetch(URL);
-    const data = await res.json();
-
-    document.getElementById("temp").innerText = data.temperatura + "°C";
-    document.getElementById("hum").innerText = data.humedad + "%";
-    document.getElementById("press").innerText = data.presion + " hPa";
-    document.getElementById("wind").innerText = data.viento + " km/h";
-    document.getElementById("gust").innerText = data.rafaga + " km/h";
-    document.getElementById("rain").innerText = data.lluvia + " mm";
-    document.getElementById("hora").innerText = data.hora;
-
-    document.getElementById("estado").innerText = estado(data);
-
-    document.getElementById("error").style.display="none";
-
-  }catch(e){
-    document.getElementById("error").style.display="block";
-  }
+/* —— ESTADO CLIMÁTICO —— */
+function obtenerEstado(t, hu, v, ll) {
+if (ll > 0)           return { emoji:"🌧️", texto:"Lluvia" };
+if (v  > 40)          return { emoji:"💨", texto:"Ventoso" };
+if (hu > 85 && t > 20)return { emoji:"🌫️", texto:"Muy húmedo" };
+if (t  > 30)          return { emoji:"🔥", texto:"Muy caluroso" };
+if (t  > 25)          return { emoji:"☀️", texto:"Caluroso" };
+if (t  > 18)          return { emoji:"🌤️", texto:"Agradable" };
+if (t  > 10)          return { emoji:"☁️", texto:"Fresco" };
+return                       { emoji:"❄️", texto:"Frío" };
 }
 
-function estado(d){
-  if(d.lluvia > 0) return "Lluvia 🌧️";
-  if(d.humedad > 85) return "Muy húmedo 💧";
-  if(d.temperatura > 30) return "Caluroso 🔥";
-  if(d.temperatura < 10) return "Frío ❄️";
-  return "Estable 🌤️";
+/* —— SENSACIÓN TÉRMICA (fórmula mejorada) ——
+  Rothfusz para calor, Wind Chill para frío con viento */
+function sensacion(t, hu, v) {
+let st;
+if (t >= 27) {
+// Heat Index de Rothfusz (resultado en °C)
+st = -8.78469475556
++ 1.61139411*t + 2.33854883889*hu
+- 0.14611605*t*hu - 0.012308094*t*t
+- 0.0164248277778*hu*hu
++ 0.002211732*t*t*hu
++ 0.00072546*t*hu*hu
+- 0.000003582*t*t*hu*hu;
+} else if (t <= 10 && v > 4.8) {
+// Wind Chill (viento en km/h)
+st = 13.12 + 0.6215*t
+- 11.37*Math.pow(v, 0.16)
++ 0.3965*t*Math.pow(v, 0.16);
+} else {
+// Aproximación combinada
+st = t + 0.33*(hu/100*6.112*Math.exp(17.67*t/(t+243.5))/(t+273)) - 4;
+}
+return st.toFixed(1);
 }
 
-setInterval(cargarDatos,60000);
-cargarDatos();
+/* —— ÍNDICE DE CALOR (badge de riesgo) —— */
+function heatIndex(t, hu) {
+if (t < 27) return null; // no aplica bajo 27 °C
+const hi = -8.78469475556
++ 1.61139411*t + 2.33854883889*hu
+- 0.14611605*t*hu - 0.012308094*t*t
+- 0.0164248277778*hu*hu
++ 0.002211732*t*t*hu
++ 0.00072546*t*hu*hu
+- 0.000003582*t*t*hu*hu;
+if (hi < 32) return { texto:"Confort normal",       clase:"bajo" };
+if (hi < 41) return { texto:"Precaución: calor",    clase:"moderado" };
+if (hi < 54) return { texto:"⚠ Precaución extrema", clase:"alto" };
+return              { texto:"🔴 Peligro por calor",  clase:"extremo" };
+}
 
+/* —— ALERTA SUPERIOR —— */
+function alerta(t, v, ll) {
+const banner = document.getElementById("alert-banner");
+const icon   = document.getElementById("alert-icon");
+const txt    = document.getElementById("alert-text");
+const nav    = document.getElementById("main-nav");
+
+banner.classList.remove("visible","lluvia-alert","viento-alert","calor-alert");
+
+if (ll > 5) {
+banner.classList.add("visible","lluvia-alert");
+icon.innerText = "🌧️";
+txt.innerText  = `Lluvia en curso · ${ll} mm acumulados hoy`;
+} else if (v > 50) {
+banner.classList.add("visible","viento-alert");
+icon.innerText = "💨";
+txt.innerText  = `Viento fuerte · ráfagas de hasta ${v} km/h`;
+} else if (t > 35) {
+banner.classList.add("visible","calor-alert");
+icon.innerText = "🔥";
+txt.innerText  = `Temperatura extrema · ${t}°C — Mantenerse hidratado`;
+}
+
+// Bajar el nav si hay alerta visible
+nav.style.top = banner.classList.contains("visible")
+? banner.offsetHeight + "px" : "0";
+}
+
+/* —— FONDO DINÁMICO —— */
+function fondo(t, ll) {
+document.body.classList.remove('calor','frio','lluvia');
+if (ll > 0)     document.body.classList.add('lluvia');
+else if (t > 25) document.body.classList.add('calor');
+else if (t < 12) document.body.classList.add('frio');
+}
+
+/* —— MÍNIMA / MÁXIMA DEL DÍA —— */
+function minMax(t) {
+const hoy = new Date().toDateString();
+if (hoy !== fechaHoy) { tempMin = null; tempMax = null; fechaHoy = hoy; }
+if (tempMin === null || t < tempMin) tempMin = t;
+if (tempMax === null || t > tempMax) tempMax = t;
+document.getElementById("temp-min").innerText = tempMin;
+document.getElementById("temp-max").innerText = tempMax;
+}
+
+/* —— HISTORIAL + GRÁFICO —— */
+function guardar(d) {
+const hora = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+hist.h.push(hora);
+hist.temp.push(d.temperatura);
+hist.hum.push(d.humedad);
+hist.pres.push(d.presion);
+hist.lluvia.push(d.lluvia || 0);
+if (hist.h.length > MAX_PUNTOS) {
+['h','temp','hum','pres','lluvia'].forEach(k => hist[k].shift());
+}
+}
+
+const GCFG = {
+temp:   { label:"Temperatura (°C)", color:"#fb923c", fill:"rgba(251,146,60,.15)" },
+hum:    { label:"Humedad (%)",       color:"#38bdf8", fill:"rgba(56,189,248,.15)" },
+pres:   { label:"Presión (hPa)",     color:"#a78bfa", fill:"rgba(167,139,250,.15)" },
+lluvia: { label:"Lluvia (mm)",       color:"#60a5fa", fill:"rgba(96,165,250,.15)" },
+};
+
+function grafico() {
+const canvas = document.getElementById("miGrafico");
+const empty  = document.getElementById("chart-empty");
+
+if (hist.h.length < 2) {
+canvas.style.display = "none";
+empty.style.display  = "block";
+return;
+}
+empty.style.display  = "none";
+canvas.style.display = "block";
+
+const cfg  = GCFG[graficoActivo];
+const data = hist[graficoActivo];
+
+if (miChart) miChart.destroy();
+
+miChart = new Chart(canvas, {
+type: 'line',
+data: {
+labels: hist.h,
+datasets: [{
+label: cfg.label, data,
+borderColor: cfg.color,
+backgroundColor: cfg.fill,
+borderWidth: 2,
+pointRadius: data.length > 20 ? 0 : 3,
+pointHoverRadius: 5,
+fill: true, tension: 0.4,
+}]
+},
+options: {
+responsive: true,
+maintainAspectRatio: true,
+plugins: {
+legend: { display: false },
+tooltip: {
+backgroundColor:'rgba(8,14,26,.92)',
+borderColor:'rgba(255,255,255,.1)',
+borderWidth:1,
+titleColor:'#94a3b8',
+bodyColor:'#fff',
+padding:10,
+}
+},
+scales: {
+x: {
+grid:  { color:'rgba(255,255,255,.05)' },
+ticks: { color:'rgba(226,232,240,.45)', font:{size:10}, maxTicksLimit:8 }
+},
+y: {
+grid:  { color:'rgba(255,255,255,.05)' },
+ticks: { color:'rgba(226,232,240,.45)', font:{size:10} }
+}
+}
+}
+});
+}
+
+function cambiarGrafico(tipo, btn) {
+graficoActivo = tipo;
+document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+grafico();
+}
+
+/* —— ACTUALIZACIÓN PRINCIPAL —— */
+function actualizar() {
+fetch(API)
+.then(r => r.json())
+.then(d => {
+const t  = d.temperatura;
+const hu = d.humedad;
+const v  = d.viento;
+const vr = d.rafaga || 0;
+const p  = d.presion;
+const ll = d.lluvia || 0;
+
+// Temperatura
+document.getElementById("temp").innerText = t;
+minMax(t);
+
+// Estado
+const est = obtenerEstado(t, hu, v, ll);
+document.getElementById("estado-emoji").innerText = est.emoji;
+document.getElementById("estado-texto").innerText = est.texto;
+
+// Sensación térmica
+document.getElementById("sensacion").innerText =
+"Sensación térmica: " + sensacion(t, hu, v) + "°C";
+
+// Índice de calor
+const hi    = heatIndex(t, hu);
+const badge = document.getElementById("heat-index-badge");
+if (hi) {
+badge.style.display = "inline-block";
+badge.className = "heat-index " + hi.clase;
+badge.innerText = hi.texto;
+} else {
+badge.style.display = "none";
+}
+
+// Cards
+document.getElementById("hum").innerText    = hu;
+document.getElementById("hum-bar").style.width = hu + "%";
+document.getElementById("viento").innerText = v;
+document.getElementById("rafaga").innerText = vr;
+document.getElementById("pres").innerText   = p;
+document.getElementById("lluvia").innerText = ll;
+
+// Hora
+document.getElementById("hora").innerText =
+"Última actualización: " + new Date().toLocaleTimeString('es-AR');
+
+// Fondo + alerta
+fondo(t, ll);
+alerta(t, Math.max(v, vr), ll);
+
+// Historial + gráfico
+guardar(d);
+grafico();
+
+// Ocultar loading
+document.getElementById("loader").classList.add("hidden");
+})
+.catch(() => {
+document.getElementById("estado-texto").innerText = "Sin conexión";
+document.getElementById("loader").classList.add("hidden");
+});
+}
+
+actualizar();
+setInterval(actualizar, 60000);
 </script>
-
 </body>
 </html>
