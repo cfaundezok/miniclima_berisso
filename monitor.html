@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Monitor Meteorológico Escolar</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(to bottom, #0a0f1f, #1a2a4a);
+        color: white;
+        overflow: hidden;
+    }
+
+    .pantalla {
+        display: none;
+        height: 100vh;
+        width: 100vw;
+        padding: 30px;
+        box-sizing: border-box;
+    }
+
+    .activa {
+        display: block;
+    }
+
+    .titulo {
+        font-size: 3vw;
+        opacity: 0.8;
+    }
+
+    .temp {
+        font-size: 10vw;
+        font-weight: bold;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-top: 40px;
+    }
+
+    .card {
+        background: rgba(255,255,255,0.08);
+        border-radius: 15px;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .valor {
+        font-size: 3vw;
+        font-weight: bold;
+    }
+
+    .label {
+        opacity: 0.7;
+    }
+
+    .center {
+        text-align: center;
+        margin-top: 10%;
+    }
+
+    .big {
+        font-size: 5vw;
+    }
+
+    .error {
+        background: #400;
+        padding: 10px;
+        text-align: center;
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        display: none;
+    }
+
+</style>
+</head>
+
+<body>
+
+<!-- PANTALLA 1 -->
+<div class="pantalla activa" id="p1">
+    <div class="titulo">Estación Meteorológica Escolar</div>
+    <div class="temp" id="temp">--°C</div>
+
+    <div class="grid">
+        <div class="card">
+            <div class="valor" id="hum">--%</div>
+            <div class="label">Humedad</div>
+        </div>
+
+        <div class="card">
+            <div class="valor" id="wind">-- km/h</div>
+            <div class="label">Viento</div>
+        </div>
+
+        <div class="card">
+            <div class="valor" id="press">-- hPa</div>
+            <div class="label">Presión</div>
+        </div>
+
+        <div class="card">
+            <div class="valor" id="gust">-- km/h</div>
+            <div class="label">Ráfagas</div>
+        </div>
+
+        <div class="card">
+            <div class="valor" id="rain">-- mm</div>
+            <div class="label">Lluvia</div>
+        </div>
+
+        <div class="card">
+            <div class="valor" id="estado">--</div>
+            <div class="label">Estado</div>
+        </div>
+    </div>
+</div>
+
+<!-- PANTALLA 2 -->
+<div class="pantalla" id="p2">
+    <div class="center">
+        <div class="big">¿Sabías que?</div>
+        <p class="big" id="datoCurioso"></p>
+    </div>
+</div>
+
+<!-- PANTALLA 3 -->
+<div class="pantalla" id="p3">
+    <div class="center">
+        <div class="big">Datos actualizados</div>
+        <p class="big" id="hora">--</p>
+    </div>
+</div>
+
+<div class="error" id="error">Sin conexión a datos</div>
+
+<script>
+/* ===================== CONFIG ===================== */
+const URL = "PEGAR_ACA_TU_APPS_SCRIPT";
+
+/* ===================== FETCH ===================== */
+async function obtenerDatos() {
+    try {
+        const res = await fetch(URL);
+        const data = await res.json();
+
+        document.getElementById("temp").innerText = data.temperatura + "°C";
+        document.getElementById("hum").innerText = data.humedad + "%";
+        document.getElementById("wind").innerText = data.viento + " km/h";
+        document.getElementById("gust").innerText = data.rafaga + " km/h";
+        document.getElementById("press").innerText = data.presion + " hPa";
+        document.getElementById("rain").innerText = data.lluvia + " mm";
+        document.getElementById("hora").innerText = data.hora;
+
+        document.getElementById("estado").innerText = calcularEstado(data);
+
+        document.getElementById("error").style.display = "none";
+
+    } catch (e) {
+        document.getElementById("error").style.display = "block";
+    }
+}
+
+/* ===================== ESTADO ===================== */
+function calcularEstado(d) {
+    if (d.lluvia > 0) return "Lluvia";
+    if (d.humedad > 85) return "Muy húmedo";
+    if (d.temperatura > 30) return "Caluroso";
+    if (d.temperatura < 10) return "Frío";
+    return "Estable";
+}
+
+/* ===================== ROTACIÓN ===================== */
+let pantalla = 0;
+const pantallas = ["p1", "p2", "p3"];
+
+setInterval(() => {
+    document.getElementById(pantallas[pantalla]).classList.remove("activa");
+    pantalla = (pantalla + 1) % pantallas.length;
+    document.getElementById(pantallas[pantalla]).classList.add("activa");
+}, 10000);
+
+/* ===================== DATOS EDUCATIVOS ===================== */
+const datos = [
+    "La presión atmosférica afecta el clima y se mide en hPa",
+    "La humedad indica la cantidad de vapor de agua en el aire",
+    "El viento se mide con un anemómetro",
+    "Las estaciones meteorológicas permiten predecir el clima",
+    "La lluvia se mide en milímetros acumulados"
+];
+
+function rotarDato() {
+    const i = Math.floor(Math.random() * datos.length);
+    document.getElementById("datoCurioso").innerText = datos[i];
+}
+
+setInterval(rotarDato, 10000);
+rotarDato();
+
+/* ===================== REFRESH ===================== */
+setInterval(obtenerDatos, 60000);
+obtenerDatos();
+
+</script>
+
+</body>
+</html>
