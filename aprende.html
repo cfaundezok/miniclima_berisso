@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>¿Qué mide la estación? – EEST N°2</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080e1a;
+      --surface: rgba(255,255,255,0.045);
+      --border: rgba(255,255,255,0.08);
+      --accent: #38bdf8;
+      --accent2: #818cf8;
+      --text: #e2e8f0;
+      --muted: rgba(226,232,240,0.45);
+      --card-radius: 16px;
+
+      /* colores de acento por variable */
+      --c-temp:    #fb923c;
+      --c-hum:     #38bdf8;
+      --c-pres:    #a78bfa;
+      --c-viento:  #34d399;
+      --c-rafaga:  #f472b6;
+      --c-lluvia:  #60a5fa;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(56,189,248,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(129,140,248,0.05) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: rgba(8,14,26,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-brand {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .nav-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .nav-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 4px;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 16px;
+      border-radius: 8px;
+      color: var(--muted);
+      transition: all 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+      background: var(--surface);
+    }
+
+    .nav-links a.active {
+      color: var(--accent);
+      background: rgba(56,189,248,0.1);
+    }
+
+    /* MAIN */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 20px 80px;
+    }
+
+    /* PAGE HEADER */
+    .page-header {
+      margin-bottom: 48px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .page-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .page-title {
+      font-size: clamp(28px, 6vw, 48px);
+      font-weight: 600;
+      line-height: 1.2;
+      margin-bottom: 14px;
+    }
+
+    .page-desc {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.65;
+    }
+
+    /* TARJETAS VARIABLES */
+    .vars-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .var-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 28px 30px;
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 0 24px;
+      align-items: start;
+      animation: fadeUp 0.5s ease both;
+      transition: border-color 0.25s, transform 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .var-card:hover {
+      transform: translateY(-3px);
+    }
+
+    /* línea de color izquierda */
+    .var-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 3px;
+      border-radius: 3px 0 0 3px;
+    }
+
+    .var-card.temp   { --c: var(--c-temp);   } .var-card.temp::before   { background: var(--c-temp);   } .var-card.temp:hover   { border-color: rgba(251,146,60,0.35);  }
+    .var-card.hum    { --c: var(--c-hum);    } .var-card.hum::before    { background: var(--c-hum);    } .var-card.hum:hover    { border-color: rgba(56,189,248,0.35);  }
+    .var-card.pres   { --c: var(--c-pres);   } .var-card.pres::before   { background: var(--c-pres);   } .var-card.pres:hover   { border-color: rgba(167,139,250,0.35); }
+    .var-card.viento { --c: var(--c-viento); } .var-card.viento::before { background: var(--c-viento); } .var-card.viento:hover { border-color: rgba(52,211,153,0.35);  }
+    .var-card.rafaga { --c: var(--c-rafaga); } .var-card.rafaga::before { background: var(--c-rafaga); } .var-card.rafaga:hover { border-color: rgba(244,114,182,0.35); }
+    .var-card.lluvia { --c: var(--c-lluvia); } .var-card.lluvia::before { background: var(--c-lluvia); } .var-card.lluvia:hover { border-color: rgba(96,165,250,0.35);  }
+
+    .var-card:nth-child(2) { animation-delay: 0.07s; }
+    .var-card:nth-child(3) { animation-delay: 0.14s; }
+    .var-card:nth-child(4) { animation-delay: 0.21s; }
+    .var-card:nth-child(5) { animation-delay: 0.28s; }
+    .var-card:nth-child(6) { animation-delay: 0.35s; }
+
+    .var-icon-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .var-icon {
+      font-size: 36px;
+      line-height: 1;
+    }
+
+    .var-unit-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.07);
+      color: var(--c);
+      border: 1px solid rgba(255,255,255,0.08);
+      white-space: nowrap;
+    }
+
+    .var-content {}
+
+    .var-name {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .var-desc {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.65;
+      margin-bottom: 14px;
+    }
+
+    /* DATOS CURIOSOS */
+    .fact-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .fact {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+      color: rgba(226,232,240,0.7);
+      line-height: 1.55;
+    }
+
+    .fact-dot {
+      flex-shrink: 0;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--c);
+      margin-top: 6px;
+    }
+
+    /* TABLA DE REFERENCIA */
+    .ref-table {
+      margin-top: 12px;
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .ref-table th {
+      text-align: left;
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ref-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      color: rgba(226,232,240,0.8);
+    }
+
+    .ref-table tr:last-child td { border-bottom: none; }
+    .ref-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* SECCIÓN SOBRE LA ESTACIÓN */
+    .station-section {
+      margin-top: 56px;
+      padding: 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      animation: fadeUp 0.5s 0.4s ease both;
+    }
+
+    .station-section h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .station-section p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 10px;
+    }
+
+    .station-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .station-tags span {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 8px;
+      background: rgba(56,189,248,0.08);
+      border: 1px solid rgba(56,189,248,0.2);
+      color: var(--accent);
+    }
+
+    /* FOOTER NAV */
+    .bottom-nav {
+      margin-top: 48px;
+      padding: 20px 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .bottom-nav p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 10px;
+      background: rgba(56,189,248,0.12);
+      border: 1px solid rgba(56,189,248,0.3);
+      color: var(--accent);
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: rgba(56,189,248,0.2);
+      transform: translateY(-1px);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 520px) {
+      .var-card {
+        grid-template-columns: 1fr;
+      }
+      .var-icon-wrap {
+        flex-direction: row;
+        margin-bottom: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <span class="nav-title">🌡️ MeteoEscuela</span>
+    <span class="nav-sub">EEST N°2 "Ing. Emilio Rebuelto" – Berisso</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html">En vivo</a>
+    <a href="aprende.html" class="active">¿Qué mide?</a>
+  </div>
+</nav>
+
+<main>
+
+  <!-- CABECERA -->
+  <div class="page-header">
+    <div class="page-label">Sección educativa</div>
+    <h1 class="page-title">¿Qué mide nuestra<br>estación meteorológica?</h1>
+    <p class="page-desc">
+      Nuestra estación DAZA registra seis variables del estado del tiempo en tiempo real.
+      Acá explicamos qué significa cada una, para qué sirve y cómo interpretarla.
+    </p>
+  </div>
+
+  <!-- VARIABLES -->
+  <div class="vars-list">
+
+    <!-- TEMPERATURA -->
+    <div class="var-card temp">
+      <div class="var-icon-wrap">
+        <div class="var-icon">🌡️</div>
+        <span class="var-unit-badge">°C</span>
+      </div>
+      <div class="var-content">
+        <div class="var-name">Temperatura</div>
+        <p class="var-desc">
+          Mide el calor o frío del aire en grados Celsius (°C). Es la variable meteorológica
+          más conocida: cuanto mayor es el valor, más calor hace. Se mide a la sombra y
+          protegida del viento para reflejar el estado real del aire.
+        </p>
+        <table class="ref-table">
+          <tr><th>Valor</th><th>Sensación</th></tr>
+          <tr><td>Por debajo de 10°C</td><td>❄️ Frío</td></tr>
+          <tr><td>10 a 18°C</td><td>☁️ Fresco</td></tr>
+          <tr><td>18 a 25°C</td><td>🌤️ Agradable</td></tr>
+          <tr><td>25 a 30°C</td><td>☀️ Caluroso</td></tr>
+          <tr><td>Más de 30°C</td><td>🔥 Muy caluroso</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- HUMEDAD -->
+    <div class="var-card hum">
+      <div class="var-icon-wrap">
+        <div class="var-icon">💧</div>
+        <span class="var-unit-badge">%</span>
+      </div>
+      <div class="var-content">
+        <div class="var-name">Humedad relativa</div>
+        <p class="var-desc">
+          Indica qué porcentaje del vapor de agua máximo posible está presente en el aire
+          en ese momento. Un 100% significa que el aire está completamente saturado
+          (puede llover o hay niebla). Un 30% indica aire muy seco.
+        </p>
+        <div class="fact-list">
+          <div class="fact"><div class="fact-dot"></div><span>Por encima del 80% el cuerpo transpira más pero el sudor no se evapora bien, haciéndonos sentir más calor.</span></div>
+          <div class="fact"><div class="fact-dot"></div><span>Por debajo del 30% el ambiente es muy seco: puede irritar la garganta y los ojos.</span></div>
+          <div class="fact"><div class="fact-dot"></div><span>Berisso, por estar cerca del Río de La Plata, suele tener humedad alta.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRESIÓN -->
+    <div class="var-card pres">
+      <div class="var-icon-wrap">
+        <div class="var-icon">📊</div>
+        <span class="var-unit-badge">hPa</span>
+      </div>
+      <div class="var-content">
+        <div class="var-name">Presión atmosférica</div>
+        <p class="var-desc">
+          Es el peso del aire sobre cada punto de la superficie terrestre. Se mide en
+          hectopascales (hPa). Aunque no la sentimos, la presión es clave para
+          predecir el tiempo: cuando baja, es señal de que se aproxima mal tiempo;
+          cuando sube, el tiempo tiende a mejorar.
+        </p>
+        <div class="fact-list">
+          <div class="fact"><div class="fact-dot"></div><span>El valor "normal" al nivel del mar es 1013 hPa.</span></div>
+          <div class="fact"><div class="fact-dot"></div><span>Una bajada rápida de más de 5 hPa en pocas horas puede anunciar tormenta.</span></div>
+          <div class="fact"><div class="fact-dot"></div><span>Las tormentas fuertes (como ciclones) tienen presiones muy bajas; los anticiclones tienen presiones altas y cielos despejados.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIENTO -->
+    <div class="var-card viento">
+      <div class="var-icon-wrap">
+        <div class="var-icon">🌬️</div>
+        <span class="var-unit-badge">km/h</span>
+      </div>
+      <div class="var-content">
+        <div class="var-name">Velocidad del viento</div>
+        <p class="var-desc">
+          Mide qué tan rápido se mueve el aire en kilómetros por hora (km/h). El viento
+          se produce porque el aire se desplaza desde zonas de alta presión hacia zonas
+          de baja presión. La estación registra la velocidad promedio del viento en un
+          intervalo corto de tiempo.
+        </p>
+        <table class="ref-table">
+          <tr><th>Velocidad</th><th>Descripción</th></tr>
+          <tr><td>0 – 5 km/h</td><td>Calma</td></tr>
+          <tr><td>6 – 20 km/h</td><td>Brisa suave</td></tr>
+          <tr><td>21 – 40 km/h</td><td>Viento moderado</td></tr>
+          <tr><td>41 – 60 km/h</td><td>Viento fuerte</td></tr>
+          <tr><td>Más de 60 km/h</td><td>Tormenta / peligroso</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- RÁFAGAS -->
+    <div class="var-card rafaga">
+      <div class="var-icon-wrap">
+        <div class="var-icon">💨</div>
+        <span class="var-unit-badge">km/h</span>
+      </div>
+      <div class="var-content">
+        <div class="var-name">Ráfagas de viento</div>
+        <p class="var-desc">
+          Una ráfaga es un aumento brusco y corto de la velocidad del viento. Siempre
+          son más altas que el viento promedio. Las ráfagas son importantes porque
+          pueden ser peligrosas incluso cuando el viento promedio parece tranquilo.
+        </p>
+        <div class="fact-list">
+          <div class="fact"><div class="fact-dot"></div><span>Una ráfaga dura generalmente menos de 20 segundos.</span></div>
+          <div class="fact"><div class="fact-dot"></div><span>En tormentas eléctricas, las ráfagas pueden superar los 90 km/h.</span></div>
+          <div class="fact"><div class="fact-dot"></div><span>La diferencia entre ráfaga y viento promedio se llama "variabilidad del viento".</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LLUVIA -->
+    <div class="var-card lluvia">
+      <div class="var-icon-wrap">
+        <div class="var-icon">🌧️</div>
+        <span class="var-unit-badge">mm</span>
+      </div>
+      <div class="var-content">
+        <div class="var-name">Precipitación (lluvia)</div>
+        <p class="var-desc">
+          Mide la cantidad de agua caída en milímetros (mm). 1 mm equivale a 1 litro
+          de agua por metro cuadrado. La estación usa un pluviómetro de balancín que
+          registra cada pequeña cantidad de lluvia que cae.
+        </p>
+        <table class="ref-table">
+          <tr><th>Acumulado</th><th>Tipo de lluvia</th></tr>
+          <tr><td>0 – 2 mm</td><td>Llovizna</td></tr>
+          <tr><td>2 – 15 mm</td><td>Lluvia moderada</td></tr>
+          <tr><td>15 – 40 mm</td><td>Lluvia fuerte</td></tr>
+          <tr><td>Más de 40 mm</td><td>Lluvia muy intensa / temporal</td></tr>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /vars-list -->
+
+  <!-- SOBRE LA ESTACIÓN -->
+  <div class="station-section">
+    <h2>🔭 Nuestra estación meteorológica</h2>
+    <p>
+      La estación que usamos es una <strong>DAZA</strong>, una estación personal
+      (PWS – <em>Personal Weather Station</em>) que registra datos automáticamente y
+      los sube a la red de <strong>Weather Underground</strong>, una plataforma global
+      de estaciones meteorológicas ciudadanas.
+    </p>
+    <p>
+      Desde Weather Underground, un script en <strong>Google Apps Script</strong>
+      descarga los datos cada vez que alguien visita esta página, los guarda en
+      <strong>Google Sheets</strong> y los envía al sitio web para mostrárselos a todos.
+    </p>
+    <p>
+      Este proyecto fue desarrollado por alumnos y docentes como herramienta educativa
+      para estudiar el clima local de Berisso en tiempo real.
+    </p>
+    <div class="station-tags">
+      <span>Marca: DAZA</span>
+      <span>ID: IBERIS12</span>
+      <span>Red: Weather Underground</span>
+      <span>Backend: Google Apps Script</span>
+      <span>Datos: Google Sheets</span>
+      <span>📍 Berisso, Buenos Aires</span>
+    </div>
+  </div>
+
+  <!-- LINK DE VUELTA -->
+  <div class="bottom-nav">
+    <p>¿Querés ver los datos en tiempo real?</p>
+    <a href="index.html" class="btn">← Ver clima en vivo</a>
+  </div>
+
+</main>
+
+</body>
+</html>
