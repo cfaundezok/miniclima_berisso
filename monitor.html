@@ -2,233 +2,651 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Monitor Meteorológico Escolar</title>
+<title>Monitor Meteorológico – EEST N°2 Berisso</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
-body {
-    margin: 0;
-    font-family: Arial, Helvetica, sans-serif;
-    background: linear-gradient(to bottom, #0a0f1f, #1a2a4a);
-    color: white;
+  :root {
+    --bg:      #040810;
+    --surface: rgba(255,255,255,0.05);
+    --border:  rgba(255,255,255,0.07);
+    --accent:  #38bdf8;
+    --gold:    #fbbf24;
+    --green:   #4ade80;
+    --red:     #f87171;
+    --text:    #f0f4f8;
+    --muted:   rgba(240,244,248,0.45);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100vw; height: 100vh;
     overflow: hidden;
-}
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+  }
 
-.pantalla {
-    display: none;
-    height: 100vh;
-    width: 100vw;
-    padding: 30px;
-    box-sizing: border-box;
-}
+  /* Fondo atmosférico animado */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 70% 60% at 15% 20%, rgba(56,189,248,0.08) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 50% at 85% 75%, rgba(129,140,248,0.06) 0%, transparent 55%);
+    animation: atmMove 20s ease-in-out infinite alternate;
+  }
+  @keyframes atmMove {
+    from { transform: scale(1) translateX(0); }
+    to   { transform: scale(1.05) translateX(-1%); }
+  }
 
-.activa {
-    display: block;
-}
+  /* ==================== PANTALLAS ==================== */
+  .pantalla {
+    position: absolute; inset: 0; z-index: 1;
+    display: flex; flex-direction: column;
+    padding: 48px 56px;
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .pantalla.activa {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .pantalla.saliendo {
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
 
-.titulo {
-    font-size: 3vw;
-    opacity: 0.8;
-}
+  /* ==================== BARRA SUPERIOR COMÚN ==================== */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 36px;
+    flex-shrink: 0;
+  }
+  .topbar-left {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .topbar-brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(18px, 2vw, 26px);
+    letter-spacing: 0.1em;
+    color: var(--accent);
+  }
+  .topbar-sub {
+    font-size: clamp(11px, 1.1vw, 14px);
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .topbar-right {
+    display: flex; align-items: center; gap: 20px;
+  }
+  .live-pill {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--green);
+    background: rgba(74,222,128,0.08);
+    border: 1px solid rgba(74,222,128,0.2);
+    border-radius: 20px; padding: 6px 14px;
+  }
+  .live-dot {
+    width: 7px; height: 7px;
+    background: var(--green); border-radius: 50%;
+    animation: blink 2s ease infinite;
+  }
+  @keyframes blink {
+    0%,100% { opacity:1; } 50% { opacity:0.3; }
+  }
+  .reloj {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(22px, 2.5vw, 36px);
+    letter-spacing: 0.06em;
+    color: var(--text);
+  }
 
-.temp {
-    font-size: 10vw;
-    font-weight: bold;
-}
+  /* ==================== INDICADOR DE PANTALLAS ==================== */
+  .dots {
+    display: flex; gap: 6px;
+    align-items: center;
+  }
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all 0.4s ease;
+  }
+  .dot.active {
+    width: 20px; border-radius: 3px;
+    background: var(--accent);
+  }
 
-.grid {
+  /* ==================== PANTALLA 1 — DATOS EN VIVO ==================== */
+  #p1 .hero {
+    display: flex;
+    align-items: flex-end;
+    gap: 32px;
+    margin-bottom: 32px;
+    flex-shrink: 0;
+  }
+  #p1 .temp-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(100px, 18vw, 220px);
+    line-height: 0.85;
+    background: linear-gradient(160deg, #fff 30%, var(--accent) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  #p1 .temp-unit-big {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(40px, 6vw, 80px);
+    color: rgba(255,255,255,0.35);
+    -webkit-text-fill-color: rgba(255,255,255,0.35);
+    padding-bottom: 16px;
+  }
+  #p1 .temp-meta {
+    display: flex; flex-direction: column; gap: 10px;
+    padding-bottom: 12px;
+  }
+  #p1 .estado-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(28px, 4vw, 56px);
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+  #p1 .sensacion-label {
+    font-size: clamp(14px, 1.5vw, 20px);
+    color: var(--muted);
+    font-weight: 300;
+  }
+  .minmax-row {
+    display: flex; gap: 20px;
+    font-size: clamp(13px, 1.4vw, 18px);
+    font-weight: 600;
+  }
+  .min-val { color: #60a5fa; }
+  .max-val { color: #fb923c; }
+
+  /* Grid de cards */
+  #p1 .data-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    margin-top: 40px;
-}
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    flex: 1;
+  }
+  .dcard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: clamp(14px, 2vw, 24px);
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    position: relative; overflow: hidden;
+  }
+  .dcard::after {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    opacity: 0.4;
+  }
+  .dcard-icon  { font-size: clamp(20px, 2.5vw, 32px); margin-bottom: 8px; }
+  .dcard-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(28px, 4vw, 54px);
+    line-height: 1; color: #fff;
+    letter-spacing: 0.03em;
+  }
+  .dcard-unit  { font-size: clamp(12px, 1.2vw, 16px); color: var(--muted); margin-left: 3px; }
+  .dcard-label {
+    margin-top: 6px;
+    font-size: clamp(10px, 0.9vw, 13px);
+    font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--muted);
+  }
+  /* barra de humedad */
+  .hum-track {
+    height: 3px; background: rgba(255,255,255,.08);
+    border-radius: 4px; margin-top: 8px; overflow: hidden;
+  }
+  .hum-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #818cf8);
+    border-radius: 4px; transition: width 1.2s ease;
+  }
 
-.card {
-    background: rgba(255,255,255,0.08);
-    border-radius: 15px;
-    padding: 20px;
-    text-align: center;
-}
+  /* ==================== PANTALLA 2 — DATO CURIOSO ==================== */
+  #p2 .curiosidad-wrap {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; gap: 28px;
+  }
+  #p2 .curiosidad-icono {
+    font-size: clamp(60px, 10vw, 120px);
+    animation: flotar 4s ease-in-out infinite;
+  }
+  @keyframes flotar {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-12px); }
+  }
+  #p2 .curiosidad-titulo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(18px, 2.5vw, 36px);
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  #p2 .curiosidad-texto {
+    font-size: clamp(24px, 4.5vw, 68px);
+    font-weight: 700;
+    line-height: 1.15;
+    max-width: 80%;
+  }
+  #p2 .curiosidad-detalle {
+    font-size: clamp(14px, 1.6vw, 22px);
+    color: var(--muted); max-width: 65%;
+    font-weight: 300; line-height: 1.6;
+  }
 
-.valor {
-    font-size: 3vw;
-    font-weight: bold;
-}
+  /* ==================== PANTALLA 3 — INSTITUCIONAL ==================== */
+  #p3 .inst-wrap {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; gap: 32px;
+  }
+  #p3 .inst-titulo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(32px, 6vw, 90px);
+    letter-spacing: 0.06em;
+    line-height: 1;
+    background: linear-gradient(135deg, #fff, var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  #p3 .inst-sub {
+    font-size: clamp(14px, 1.8vw, 26px);
+    color: var(--muted); max-width: 60%; line-height: 1.5;
+  }
+  #p3 .inst-partners {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    justify-content: center; margin-top: 8px;
+  }
+  #p3 .partner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 24px;
+    font-size: clamp(13px, 1.4vw, 18px);
+    font-weight: 600;
+    display: flex; align-items: center; gap: 10px;
+  }
 
-.label {
-    opacity: 0.7;
-}
+  /* ==================== BARRA DE PROGRESO ==================== */
+  .progress-bar {
+    position: fixed; bottom: 0; left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent));
+    width: 0%;
+    z-index: 200;
+    transition: none;
+  }
 
-.center {
-    text-align: center;
-    margin-top: 10%;
-}
-
-.big {
-    font-size: 5vw;
-}
-
-.error {
-    background: #400;
-    padding: 10px;
-    text-align: center;
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    display: none;
-}
+  /* ==================== ALERTA ==================== */
+  .alerta-strip {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 300; display: none;
+    padding: 10px 32px;
+    font-size: clamp(14px, 1.5vw, 20px);
+    font-weight: 700; text-align: center;
+    animation: slideDown 0.4s ease;
+  }
+  .alerta-strip.visible { display: block; }
+  .alerta-strip.lluvia  { background: #1d4ed8; color: #bfdbfe; }
+  .alerta-strip.viento  { background: #92400e; color: #fde68a; }
+  .alerta-strip.calor   { background: #b91c1c; color: #fecaca; }
+  @keyframes slideDown {
+    from { transform: translateY(-100%); } to { transform: translateY(0); }
+  }
 </style>
 </head>
-
 <body>
 
-<!-- PANTALLA 1: DATOS -->
+<!-- ALERTA -->
+<div class="alerta-strip" id="alerta"></div>
+
+<!-- BARRA DE PROGRESO -->
+<div class="progress-bar" id="progress"></div>
+
+<!-- ===== PANTALLA 1: DATOS EN VIVO ===== -->
 <div class="pantalla activa" id="p1">
-    <div class="titulo">Estación Meteorológica Escolar</div>
-    <div class="temp" id="temp">--°C</div>
-
-    <div class="grid">
-        <div class="card">
-            <div class="valor" id="hum">--%</div>
-            <div class="label">Humedad</div>
-        </div>
-
-        <div class="card">
-            <div class="valor" id="wind">-- km/h</div>
-            <div class="label">Viento</div>
-        </div>
-
-        <div class="card">
-            <div class="valor" id="press">-- hPa</div>
-            <div class="label">Presión</div>
-        </div>
-
-        <div class="card">
-            <div class="valor" id="gust">-- km/h</div>
-            <div class="label">Ráfagas</div>
-        </div>
-
-        <div class="card">
-            <div class="valor" id="rain">-- mm</div>
-            <div class="label">Lluvia</div>
-        </div>
-
-        <div class="card">
-            <div class="valor" id="estado">--</div>
-            <div class="label">Estado</div>
-        </div>
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-brand">🌡️ MeteoEscuela — Berisso</div>
+      <div class="topbar-sub">Estación IBERIS12 · Datos en tiempo real</div>
     </div>
+    <div class="topbar-right">
+      <div class="dots" id="dots"></div>
+      <div class="live-pill"><div class="live-dot"></div>EN VIVO</div>
+      <div class="reloj" id="reloj">--:--</div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="temp-num" id="temp">--</div>
+    <div class="temp-unit-big">°C</div>
+    <div class="temp-meta">
+      <div class="estado-label" id="estado">Cargando...</div>
+      <div class="sensacion-label" id="sensacion">Sensación: --</div>
+      <div class="minmax-row">
+        <span class="min-val">↓ <span id="tmin">--</span>°C</span>
+        <span class="max-val">↑ <span id="tmax">--</span>°C</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="data-grid">
+    <div class="dcard">
+      <div class="dcard-icon">💧</div>
+      <div><span class="dcard-val" id="hum">--</span><span class="dcard-unit">%</span></div>
+      <div class="dcard-label">Humedad</div>
+      <div class="hum-track"><div class="hum-fill" id="hum-bar" style="width:0%"></div></div>
+    </div>
+    <div class="dcard">
+      <div class="dcard-icon">🌬️</div>
+      <div><span class="dcard-val" id="viento">--</span><span class="dcard-unit">km/h</span></div>
+      <div class="dcard-label">Viento</div>
+    </div>
+    <div class="dcard">
+      <div class="dcard-icon">💨</div>
+      <div><span class="dcard-val" id="rafaga">--</span><span class="dcard-unit">km/h</span></div>
+      <div class="dcard-label">Ráfagas</div>
+    </div>
+    <div class="dcard">
+      <div class="dcard-icon">📊</div>
+      <div><span class="dcard-val" id="presion">--</span><span class="dcard-unit">hPa</span></div>
+      <div class="dcard-label">Presión</div>
+    </div>
+    <div class="dcard">
+      <div class="dcard-icon">🌧️</div>
+      <div><span class="dcard-val" id="lluvia">--</span><span class="dcard-unit">mm</span></div>
+      <div class="dcard-label">Lluvia</div>
+    </div>
+  </div>
 </div>
 
-<!-- PANTALLA 2: EDUCATIVA -->
+<!-- ===== PANTALLA 2: DATO CURIOSO ===== -->
 <div class="pantalla" id="p2">
-    <div class="center">
-        <div class="big">¿Sabías que?</div>
-        <p class="big" id="datoCurioso"></p>
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-brand">🌡️ MeteoEscuela — Berisso</div>
+      <div class="topbar-sub">Sección educativa</div>
     </div>
+    <div class="topbar-right">
+      <div class="dots" id="dots2"></div>
+      <div class="reloj" id="reloj2">--:--</div>
+    </div>
+  </div>
+  <div class="curiosidad-wrap">
+    <div class="curiosidad-icono" id="cur-icono">🌡️</div>
+    <div class="curiosidad-titulo">¿Sabías que?</div>
+    <div class="curiosidad-texto" id="cur-texto">Cargando...</div>
+    <div class="curiosidad-detalle" id="cur-detalle"></div>
+  </div>
 </div>
 
-<!-- PANTALLA 3: HORA -->
+<!-- ===== PANTALLA 3: INSTITUCIONAL ===== -->
 <div class="pantalla" id="p3">
-    <div class="center">
-        <div class="big">Datos actualizados</div>
-        <p class="big" id="hora">--</p>
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-brand">🌡️ MeteoEscuela — Berisso</div>
+      <div class="topbar-sub">Sobre el proyecto</div>
     </div>
-</div>
-
-<!-- PANTALLA 4: INSTITUCIONAL -->
-<div class="pantalla" id="p4">
-    <div class="center">
-        <div class="big">Proyecto Meteorológico Escolar</div>
-        <p class="big">
-            Trabajo conjunto entre escuela, municipio y universidad
-        </p>
-        <p>
-            EEST N°2 "Ing. Emilio Rebuelto"<br>
-            Municipio de Berisso<br>
-            Facultad de Astronomía – UNLP
-        </p>
+    <div class="topbar-right">
+      <div class="dots" id="dots3"></div>
+      <div class="reloj" id="reloj3">--:--</div>
     </div>
+  </div>
+  <div class="inst-wrap">
+    <div class="inst-titulo">Estación Meteorológica</div>
+    <div class="inst-sub">
+      Una iniciativa educativa para medir, registrar y comprender el clima
+      de Berisso en tiempo real, combinando tecnología y ciencia.
+    </div>
+    <div class="inst-partners">
+      <div class="partner">🏫 EEST N°2 "Ing. Emilio Rebuelto"</div>
+      <div class="partner">🏛️ Municipio de Berisso</div>
+      <div class="partner">🔭 Facultad de Ciencias Astronómicas y Geofísicas, – UNLP</div>
+    </div>
+    <div style="font-size:clamp(12px,1.2vw,16px);color:var(--muted);margin-top:8px;">
+      Los datos están disponibles en <span style="color:var(--accent)">GitHub Pages</span> para toda la comunidad
+    </div>
+  </div>
 </div>
-
-<div class="error" id="error">Sin conexión a datos</div>
 
 <script>
+/* ============ CONFIG ============ */
+const API = "https://script.google.com/macros/s/AKfycbzPlhvZM4vBx4wzdD44TXnG2e4BEf2ZmN0y5bupiB4L4aviVmuRliTFfglVYOiDXZEFsA/exec";
+const DURACION_PANTALLA = 12000; // 12 segundos por pantalla
+const PANTALLAS = ["p1","p2","p3"];
+let pantActual = 0;
+let tempMin = null, tempMax = null;
 
-/* ===================== CONFIG ===================== */
-const URL = "https://script.google.com/macros/s/AKfycbzPlhvZM4vBx4wzdD44TXnG2e4BEf2ZmN0y5bupiB4L4aviVmuRliTFfglVYOiDXZEFsA/exec";
-
-/* ===================== FETCH ===================== */
-async function obtenerDatos() {
-    try {
-        const res = await fetch(URL);
-        const data = await res.json();
-
-        document.getElementById("temp").innerText = data.temperatura + "°C";
-        document.getElementById("hum").innerText = data.humedad + "%";
-        document.getElementById("wind").innerText = data.viento + " km/h";
-        document.getElementById("gust").innerText = data.rafaga + " km/h";
-        document.getElementById("press").innerText = data.presion + " hPa";
-        document.getElementById("rain").innerText = data.lluvia + " mm";
-        document.getElementById("hora").innerText = data.hora;
-
-        document.getElementById("estado").innerText = calcularEstado(data);
-
-        document.getElementById("error").style.display = "none";
-
-    } catch (e) {
-        document.getElementById("error").style.display = "block";
-    }
-}
-
-/* ===================== ESTADO ===================== */
-function calcularEstado(d) {
-    if (d.lluvia > 0) return "Lluvia 🌧️";
-    if (d.humedad > 85) return "Muy húmedo 💧";
-    if (d.temperatura > 30) return "Caluroso 🔥";
-    if (d.temperatura < 10) return "Frío ❄️";
-    return "Estable 🌤️";
-}
-
-/* ===================== ROTACIÓN ===================== */
-let pantalla = 0;
-const pantallas = ["p1", "p2", "p3", "p4"];
-
-setInterval(() => {
-    document.getElementById(pantallas[pantalla]).classList.remove("activa");
-    pantalla = (pantalla + 1) % pantallas.length;
-    document.getElementById(pantallas[pantalla]).classList.add("activa");
-}, 10000);
-
-/* ===================== CONTENIDO EDUCATIVO ===================== */
-const contenidos = [
-    "Temperatura: mide el calor del aire en °C 🌡️",
-    "Humedad: más de 80% = sensación pesada 💧",
-    "Presión normal: 1013 hPa 📊",
-    "Si la presión baja → puede llover",
-    "El viento va de alta a baja presión 🌬️",
-    "Ráfagas: aumentos bruscos del viento 💨",
-    "1 mm de lluvia = 1 litro por m² 🌧️",
-    "Viento > 60 km/h puede ser peligroso ⚠️",
-    "Humedad baja seca garganta y ojos",
-    "Berisso tiene humedad alta por el río 🌊",
-    "Proyecto conjunto escuela + municipio + universidad 🤝",
-    "Formación técnica aplicada al mundo real 🏫"
+/* ============ CONTENIDO EDUCATIVO ============ */
+const curiosidades = [
+  {
+    icono: "🌡️",
+    texto: "La temperatura se mide a la sombra",
+    detalle: "Para reflejar el estado real del aire, los termómetros se colocan protegidos del sol directo y del viento, generalmente a 1,5 metros del suelo."
+  },
+  {
+    icono: "💧",
+    texto: "Humedad > 80% = sensación de calor extra",
+    detalle: "Con humedad alta el cuerpo no puede sudar eficientemente. Por eso 28°C con 90% de humedad se sienten peor que 35°C con aire seco."
+  },
+  {
+    icono: "📊",
+    texto: "La presión normal es 1013 hPa",
+    detalle: "Un descenso rápido de más de 5 hPa en pocas horas suele anunciar lluvia o tormenta. Una subida indica cielo despejado."
+  },
+  {
+    icono: "🌬️",
+    texto: "El viento va de alta a baja presión",
+    detalle: "El aire siempre se mueve desde donde hay más presión hacia donde hay menos, como el agua que corre cuesta abajo."
+  },
+  {
+    icono: "💨",
+    texto: "Las ráfagas duran menos de 20 segundos",
+    detalle: "Son aumentos bruscos del viento. En tormentas eléctricas pueden superar los 90 km/h incluso cuando el viento promedio parece moderado."
+  },
+  {
+    icono: "🌧️",
+    texto: "1 mm de lluvia = 1 litro por m²",
+    detalle: "Si llovieron 10 mm en tu patio de 100 m², cayeron exactamente 1.000 litros de agua. Por eso el pluviómetro es tan útil en agricultura."
+  },
+  {
+    icono: "🌊",
+    texto: "Berisso tiene alta humedad por el río",
+    detalle: "La cercanía al Río de La Plata hace que el aire esté constantemente cargado de vapor de agua, especialmente en verano con vientos del este."
+  },
+  {
+    icono: "🔥",
+    texto: "El índice de calor combina temp. y humedad",
+    detalle: "A 33°C con 70% de humedad, el cuerpo experimenta una sensación de más de 40°C. Esta fórmula la desarrolló la NOAA en los años 70."
+  },
+  {
+    icono: "❄️",
+    texto: "El viento hace que el frío se sienta más intenso",
+    detalle: "A 5°C con 30 km/h de viento, la sensación térmica puede bajar a -2°C. El viento acelera la pérdida de calor corporal."
+  },
+  {
+    icono: "⚡",
+    texto: "Argentina tiene muchas tormentas eléctricas",
+    detalle: "La región pampeana es una de las zonas de mayor actividad eléctrica del mundo, especialmente en primavera y verano, por la combinación de calor y humedad."
+  },
 ];
 
-function rotarContenido() {
-    const i = Math.floor(Math.random() * contenidos.length);
-    document.getElementById("datoCurioso").innerText = contenidos[i];
+let idxCuriosidad = 0;
+
+function mostrarCuriosidad(idx) {
+  const c = curiosidades[idx % curiosidades.length];
+  document.getElementById("cur-icono").innerText  = c.icono;
+  document.getElementById("cur-texto").innerText  = c.texto;
+  document.getElementById("cur-detalle").innerText = c.detalle;
 }
 
-setInterval(rotarContenido, 10000);
-rotarContenido();
+/* ============ RELOJ ============ */
+function actualizarReloj() {
+  const hora = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  document.querySelectorAll('[id^="reloj"]').forEach(el => el.innerText = hora);
+}
+setInterval(actualizarReloj, 1000);
+actualizarReloj();
 
-/* ===================== REFRESH ===================== */
-setInterval(obtenerDatos, 60000);
+/* ============ DOTS DE NAVEGACIÓN ============ */
+function renderDots() {
+  ['dots','dots2','dots3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = PANTALLAS.map((_, i) =>
+      `<div class="dot ${i === pantActual ? 'active' : ''}"></div>`
+    ).join('');
+  });
+}
+
+/* ============ BARRA DE PROGRESO ============ */
+let progInterval = null;
+function iniciarProgreso() {
+  const bar = document.getElementById("progress");
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
+  setTimeout(() => {
+    bar.style.transition = `width ${DURACION_PANTALLA}ms linear`;
+    bar.style.width = '100%';
+  }, 50);
+}
+
+/* ============ ROTACIÓN DE PANTALLAS ============ */
+function siguientePantalla() {
+  const actual = document.getElementById(PANTALLAS[pantActual]);
+  actual.classList.add('saliendo');
+  actual.classList.remove('activa');
+
+  setTimeout(() => {
+    actual.classList.remove('saliendo');
+    pantActual = (pantActual + 1) % PANTALLAS.length;
+
+    // Al pasar a la pantalla educativa, avanzar curiosidad
+    if (PANTALLAS[pantActual] === 'p2') {
+      idxCuriosidad++;
+      mostrarCuriosidad(idxCuriosidad);
+    }
+
+    document.getElementById(PANTALLAS[pantActual]).classList.add('activa');
+    renderDots();
+    iniciarProgreso();
+  }, 700);
+}
+
+setInterval(siguientePantalla, DURACION_PANTALLA);
+renderDots();
+iniciarProgreso();
+mostrarCuriosidad(0);
+
+/* ============ SENSACIÓN TÉRMICA ============ */
+function sensacion(t, hu, v) {
+  let st;
+  if (t >= 27) {
+    st = -8.78469475556 + 1.61139411*t + 2.33854883889*hu
+       - 0.14611605*t*hu - 0.012308094*t*t
+       - 0.0164248277778*hu*hu + 0.002211732*t*t*hu
+       + 0.00072546*t*hu*hu - 0.000003582*t*t*hu*hu;
+  } else if (t <= 10 && v > 4.8) {
+    st = 13.12 + 0.6215*t - 11.37*Math.pow(v,0.16) + 0.3965*t*Math.pow(v,0.16);
+  } else {
+    st = t + 0.33*(hu/100*6.112*Math.exp(17.67*t/(t+243.5))/(t+273)) - 4;
+  }
+  return st.toFixed(1);
+}
+
+/* ============ ESTADO CLIMÁTICO ============ */
+function estado(t, hu, v, ll) {
+  if (ll > 0)          return "🌧️ Lluvia";
+  if (v  > 40)         return "💨 Ventoso";
+  if (hu > 85 && t>20) return "🌫️ Muy húmedo";
+  if (t  > 30)         return "🔥 Muy caluroso";
+  if (t  > 25)         return "☀️ Caluroso";
+  if (t  > 18)         return "🌤️ Agradable";
+  if (t  > 10)         return "☁️ Fresco";
+  return                      "❄️ Frío";
+}
+
+/* ============ ALERTA ============ */
+function gestionarAlerta(t, v, ll) {
+  const el = document.getElementById("alerta");
+  el.className = "alerta-strip";
+  if (ll > 5) {
+    el.classList.add("visible","lluvia");
+    el.innerText = `🌧️  Lluvia en curso — ${ll} mm acumulados hoy`;
+  } else if (v > 50) {
+    el.classList.add("visible","viento");
+    el.innerText = `💨  Viento fuerte — ráfagas de hasta ${v} km/h`;
+  } else if (t > 35) {
+    el.classList.add("visible","calor");
+    el.innerText = `🔥  Temperatura extrema — ${t}°C · Mantenerse hidratado`;
+  }
+}
+
+/* ============ MÍNIMA / MÁXIMA ============ */
+let fechaHoy = new Date().toDateString();
+function minMax(t) {
+  const hoy = new Date().toDateString();
+  if (hoy !== fechaHoy) { tempMin = null; tempMax = null; fechaHoy = hoy; }
+  if (tempMin === null || t < tempMin) tempMin = t;
+  if (tempMax === null || t > tempMax) tempMax = t;
+  document.getElementById("tmin").innerText = tempMin;
+  document.getElementById("tmax").innerText = tempMax;
+}
+
+/* ============ FETCH DE DATOS ============ */
+async function obtenerDatos() {
+  try {
+    const res  = await fetch(API);
+    const d    = await res.json();
+    const t    = d.temperatura;
+    const hu   = d.humedad;
+    const v    = d.viento    || 0;
+    const vr   = d.rafaga    || 0;
+    const p    = d.presion;
+    const ll   = parseFloat(d.lluvia) || 0;
+
+    document.getElementById("temp").innerText    = t;
+    document.getElementById("hum").innerText     = hu;
+    document.getElementById("hum-bar").style.width = hu + "%";
+    document.getElementById("viento").innerText  = v;
+    document.getElementById("rafaga").innerText  = vr;
+    document.getElementById("presion").innerText = p;
+    document.getElementById("lluvia").innerText  = ll;
+    document.getElementById("estado").innerText  = estado(t, hu, v, ll);
+    document.getElementById("sensacion").innerText = "Sensación: " + sensacion(t, hu, v) + "°C";
+
+    minMax(t);
+    gestionarAlerta(t, Math.max(v, vr), ll);
+
+  } catch(e) {
+    document.getElementById("estado").innerText = "Sin conexión";
+  }
+}
+
 obtenerDatos();
-
+setInterval(obtenerDatos, 60000);
 </script>
-
 </body>
 </html>
