@@ -159,6 +159,8 @@
       font-family: 'Space Mono', monospace;
       font-size: clamp(64px, 17vw, 110px);
       font-weight: 700; line-height: 1;
+    }
+    #temp {
       background: linear-gradient(135deg, #fff 40%, var(--accent));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -166,7 +168,9 @@
     }
     .temp-unit {
       font-family: 'Space Mono', monospace;
-      font-size: clamp(22px, 4vw, 30px); opacity: .5;
+      font-size: clamp(22px, 4vw, 30px);
+      color: rgba(226,232,240,0.5);
+      -webkit-text-fill-color: rgba(226,232,240,0.5);
     }
     .temp-minmax {
       display: flex; gap: 14px; margin-top: 6px;
@@ -441,7 +445,7 @@
   <!-- GRÁFICOS HISTÓRICOS -->
   <div class="charts-section">
     <div class="charts-header">
-      <div class="charts-title">📈 Histórico de la sesión</div>
+      <div class="charts-title">📈 Historial de esta sesión</div>
       <div class="chart-tabs">
         <button class="chart-tab active" onclick="cambiarGrafico('temp',  this)">Temp.</button>
         <button class="chart-tab"        onclick="cambiarGrafico('hum',   this)">Humedad</button>
@@ -451,7 +455,9 @@
     </div>
     <div class="chart-wrap">
       <div class="chart-empty" id="chart-empty">
-        <span>⏳</span>Acumulando datos... volvé en unos minutos.
+        <span>⏳</span>
+        Acumulando datos...<br>
+        <small style="font-size:11px;opacity:.6">El gráfico se llena mientras la página está abierta.<br>Cada 60 s llega un nuevo punto.</small>
       </div>
       <canvas id="miGrafico" style="display:none"></canvas>
     </div>
