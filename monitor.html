@@ -6,84 +6,83 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-    body {
-        margin: 0;
-        font-family: Arial, Helvetica, sans-serif;
-        background: linear-gradient(to bottom, #0a0f1f, #1a2a4a);
-        color: white;
-        overflow: hidden;
-    }
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(to bottom, #0a0f1f, #1a2a4a);
+    color: white;
+    overflow: hidden;
+}
 
-    .pantalla {
-        display: none;
-        height: 100vh;
-        width: 100vw;
-        padding: 30px;
-        box-sizing: border-box;
-    }
+.pantalla {
+    display: none;
+    height: 100vh;
+    width: 100vw;
+    padding: 30px;
+    box-sizing: border-box;
+}
 
-    .activa {
-        display: block;
-    }
+.activa {
+    display: block;
+}
 
-    .titulo {
-        font-size: 3vw;
-        opacity: 0.8;
-    }
+.titulo {
+    font-size: 3vw;
+    opacity: 0.8;
+}
 
-    .temp {
-        font-size: 10vw;
-        font-weight: bold;
-    }
+.temp {
+    font-size: 10vw;
+    font-weight: bold;
+}
 
-    .grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 20px;
-        margin-top: 40px;
-    }
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 40px;
+}
 
-    .card {
-        background: rgba(255,255,255,0.08);
-        border-radius: 15px;
-        padding: 20px;
-        text-align: center;
-    }
+.card {
+    background: rgba(255,255,255,0.08);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+}
 
-    .valor {
-        font-size: 3vw;
-        font-weight: bold;
-    }
+.valor {
+    font-size: 3vw;
+    font-weight: bold;
+}
 
-    .label {
-        opacity: 0.7;
-    }
+.label {
+    opacity: 0.7;
+}
 
-    .center {
-        text-align: center;
-        margin-top: 10%;
-    }
+.center {
+    text-align: center;
+    margin-top: 10%;
+}
 
-    .big {
-        font-size: 5vw;
-    }
+.big {
+    font-size: 5vw;
+}
 
-    .error {
-        background: #400;
-        padding: 10px;
-        text-align: center;
-        position: absolute;
-        bottom: 0;
-        width: 100%;
-        display: none;
-    }
-
+.error {
+    background: #400;
+    padding: 10px;
+    text-align: center;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    display: none;
+}
 </style>
 </head>
 
 <body>
 
-<!-- PANTALLA 1 -->
+<!-- PANTALLA 1: DATOS -->
 <div class="pantalla activa" id="p1">
     <div class="titulo">Estación Meteorológica Escolar</div>
     <div class="temp" id="temp">--°C</div>
@@ -121,7 +120,7 @@
     </div>
 </div>
 
-<!-- PANTALLA 2 -->
+<!-- PANTALLA 2: EDUCATIVA -->
 <div class="pantalla" id="p2">
     <div class="center">
         <div class="big">¿Sabías que?</div>
@@ -129,7 +128,7 @@
     </div>
 </div>
 
-<!-- PANTALLA 3 -->
+<!-- PANTALLA 3: HORA -->
 <div class="pantalla" id="p3">
     <div class="center">
         <div class="big">Datos actualizados</div>
@@ -137,9 +136,25 @@
     </div>
 </div>
 
+<!-- PANTALLA 4: INSTITUCIONAL -->
+<div class="pantalla" id="p4">
+    <div class="center">
+        <div class="big">Proyecto Meteorológico Escolar</div>
+        <p class="big">
+            Trabajo conjunto entre escuela, municipio y universidad
+        </p>
+        <p>
+            EEST N°2 "Ing. Emilio Rebuelto"<br>
+            Municipio de Berisso<br>
+            Facultad de Astronomía – UNLP
+        </p>
+    </div>
+</div>
+
 <div class="error" id="error">Sin conexión a datos</div>
 
 <script>
+
 /* ===================== CONFIG ===================== */
 const URL = "https://script.google.com/macros/s/AKfycbzPlhvZM4vBx4wzdD44TXnG2e4BEf2ZmN0y5bupiB4L4aviVmuRliTFfglVYOiDXZEFsA/exec";
 
@@ -168,16 +183,16 @@ async function obtenerDatos() {
 
 /* ===================== ESTADO ===================== */
 function calcularEstado(d) {
-    if (d.lluvia > 0) return "Lluvia";
-    if (d.humedad > 85) return "Muy húmedo";
-    if (d.temperatura > 30) return "Caluroso";
-    if (d.temperatura < 10) return "Frío";
-    return "Estable";
+    if (d.lluvia > 0) return "Lluvia 🌧️";
+    if (d.humedad > 85) return "Muy húmedo 💧";
+    if (d.temperatura > 30) return "Caluroso 🔥";
+    if (d.temperatura < 10) return "Frío ❄️";
+    return "Estable 🌤️";
 }
 
 /* ===================== ROTACIÓN ===================== */
 let pantalla = 0;
-const pantallas = ["p1", "p2", "p3"];
+const pantallas = ["p1", "p2", "p3", "p4"];
 
 setInterval(() => {
     document.getElementById(pantallas[pantalla]).classList.remove("activa");
@@ -185,22 +200,29 @@ setInterval(() => {
     document.getElementById(pantallas[pantalla]).classList.add("activa");
 }, 10000);
 
-/* ===================== DATOS EDUCATIVOS ===================== */
-const datos = [
-    "La presión atmosférica afecta el clima y se mide en hPa",
-    "La humedad indica la cantidad de vapor de agua en el aire",
-    "El viento se mide con un anemómetro",
-    "Las estaciones meteorológicas permiten predecir el clima",
-    "La lluvia se mide en milímetros acumulados"
+/* ===================== CONTENIDO EDUCATIVO ===================== */
+const contenidos = [
+    "Temperatura: mide el calor del aire en °C 🌡️",
+    "Humedad: más de 80% = sensación pesada 💧",
+    "Presión normal: 1013 hPa 📊",
+    "Si la presión baja → puede llover",
+    "El viento va de alta a baja presión 🌬️",
+    "Ráfagas: aumentos bruscos del viento 💨",
+    "1 mm de lluvia = 1 litro por m² 🌧️",
+    "Viento > 60 km/h puede ser peligroso ⚠️",
+    "Humedad baja seca garganta y ojos",
+    "Berisso tiene humedad alta por el río 🌊",
+    "Proyecto conjunto escuela + municipio + universidad 🤝",
+    "Formación técnica aplicada al mundo real 🏫"
 ];
 
-function rotarDato() {
-    const i = Math.floor(Math.random() * datos.length);
-    document.getElementById("datoCurioso").innerText = datos[i];
+function rotarContenido() {
+    const i = Math.floor(Math.random() * contenidos.length);
+    document.getElementById("datoCurioso").innerText = contenidos[i];
 }
 
-setInterval(rotarDato, 10000);
-rotarDato();
+setInterval(rotarContenido, 10000);
+rotarContenido();
 
 /* ===================== REFRESH ===================== */
 setInterval(obtenerDatos, 60000);
