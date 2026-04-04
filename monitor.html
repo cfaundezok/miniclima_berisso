@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Monitor Meteorológico – EEST N°2 Berisso</title>
+<title>Monitor Meteorológico – EEST N°2</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -377,7 +377,8 @@
     <div class="dcard">
       <div class="dcard-icon">🌧️</div>
       <div><span class="dcard-val" id="lluvia">--</span><span class="dcard-unit">mm</span></div>
-      <div class="dcard-label">Lluvia</div>
+      <div class="dcard-label">Lluvia hoy</div>
+      <div style="font-size:clamp(10px,1vw,14px);color:var(--muted);margin-top:6px;" id="lluvia-tasa">-- mm/h ahora</div>
     </div>
   </div>
 </div>
@@ -415,7 +416,7 @@
     </div>
   </div>
   <div class="inst-wrap">
-    <div class="inst-titulo">Estación Meteorológica</div>
+    <div class="inst-titulo">Estación Meteorológica </div>
     <div class="inst-sub">
       Una iniciativa educativa para medir, registrar y comprender el clima
       de Berisso en tiempo real, combinando tecnología y ciencia.
@@ -423,7 +424,7 @@
     <div class="inst-partners">
       <div class="partner">🏫 EEST N°2 "Ing. Emilio Rebuelto"</div>
       <div class="partner">🏛️ Municipio de Berisso</div>
-      <div class="partner">🔭 Facultad de Ciencias Astronómicas y Geofísicas, – UNLP</div>
+      <div class="partner">🔭 Facultad de Astronomía – UNLP</div>
     </div>
     <div style="font-size:clamp(12px,1.2vw,16px);color:var(--muted);margin-top:8px;">
       Los datos están disponibles en <span style="color:var(--accent)">GitHub Pages</span> para toda la comunidad
@@ -625,7 +626,8 @@ async function obtenerDatos() {
     const v    = d.viento    || 0;
     const vr   = d.rafaga    || 0;
     const p    = d.presion;
-    const ll   = parseFloat(d.lluvia) || 0;
+    const ll   = parseFloat(d.lluvia)     || 0;
+    const llt  = parseFloat(d.lluviaTasa) || 0;
 
     document.getElementById("temp").innerText    = t;
     document.getElementById("hum").innerText     = hu;
@@ -634,6 +636,7 @@ async function obtenerDatos() {
     document.getElementById("rafaga").innerText  = vr;
     document.getElementById("presion").innerText = p;
     document.getElementById("lluvia").innerText  = ll;
+    document.getElementById("lluvia-tasa").innerText = llt + " mm/h ahora";
     document.getElementById("estado").innerText  = estado(t, hu, v, ll);
     document.getElementById("sensacion").innerText = "Sensación: " + sensacion(t, hu, v) + "°C";
 
