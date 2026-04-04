@@ -225,6 +225,24 @@
       font-size: 24px; font-weight: 700; color: #fff;
     }
     .card-unit { font-size: 12px; color: var(--muted); margin-left: 2px; }
+
+    /* subtexto debajo del valor principal de la card */
+    .card-sub {
+      font-size: 11px; color: var(--muted);
+      margin-top: 5px; font-family: 'Space Mono', monospace;
+    }
+    /* badge de lluvia activa */
+    .lluvia-activa {
+      display: none;
+      font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: 10px;
+      background: rgba(96,165,250,.15);
+      color: #60a5fa;
+      border: 1px solid rgba(96,165,250,.25);
+      margin-top: 6px;
+      font-family: 'Space Mono', monospace;
+    }
+
     .hum-bar {
       height: 3px; background: rgba(255,255,255,.1);
       border-radius: 4px; margin-top: 8px; overflow: hidden;
@@ -313,41 +331,25 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ============================
-       RESPONSIVE MÓVIL
-    ============================ */
+    /* ---- RESPONSIVE MÓVIL ---- */
     @media (max-width: 600px) {
-      /* nav compacto */
       .nav-sub    { display: none; }
       .live-badge { padding: 3px 8px; font-size: 9px; }
       .nav-links a{ padding: 6px 10px; font-size: 12px; }
-
-      /* hero apilado */
       .hero { flex-direction: column; align-items: flex-start; gap: 6px; }
       .estado-bloque { text-align: left; }
       .estado-emoji  { font-size: 36px; }
-
-      /* grid 2 columnas en mobile */
       .grid { grid-template-columns: 1fr 1fr; gap: 10px; }
       .card { padding: 14px; }
       .card-value { font-size: 20px; }
       .card-icon  { font-size: 18px; margin-bottom: 6px; }
-
-      /* station bar scroll horizontal */
       .station-bar { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
       .station-bar::-webkit-scrollbar { height: 3px; }
       .station-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius:4px; }
-
-      /* pestañas de gráfico más pequeñas */
       .chart-tab  { padding: 4px 8px; font-size: 11px; }
       canvas      { max-height: 180px; }
-
-      /* footer apilado */
       .footer-bar { flex-direction: column; align-items: flex-start; gap: 4px; }
-
       main { padding: 14px 12px 80px; }
-
-      /* alerta más compacta */
       .alert-banner { font-size: 12px; padding: 8px 14px; }
     }
   </style>
@@ -435,10 +437,14 @@
       <div class="card-label">Presión</div>
       <div><span class="card-value" id="pres">--</span><span class="card-unit">hPa</span></div>
     </div>
+
+    <!-- CARD DE LLUVIA — muestra acumulado + tasa activa -->
     <div class="card">
       <span class="card-icon">🌧️</span>
-      <div class="card-label">Lluvia</div>
+      <div class="card-label">Lluvia hoy</div>
       <div><span class="card-value" id="lluvia">--</span><span class="card-unit">mm</span></div>
+      <div class="card-sub" id="lluvia-tasa">-- mm/h ahora</div>
+      <div class="lluvia-activa" id="lluvia-activa">🔵 Lloviendo ahora</div>
     </div>
   </div>
 
@@ -457,7 +463,7 @@
       <div class="chart-empty" id="chart-empty">
         <span>⏳</span>
         Acumulando datos...<br>
-        <small style="font-size:11px;opacity:.6">El gráfico se llena mientras la página está abierta.<br>Cada 60 s llega un nuevo punto.</small>
+        <small style="font-size:11px;opacity:.6">Los primeros registros aparecen en unos minutos.</small>
       </div>
       <canvas id="miGrafico" style="display:none"></canvas>
     </div>
@@ -474,31 +480,28 @@
 <script>
 /* —— CONFIG —— */
 const API = "https://script.google.com/macros/s/AKfycbwRd1AqIRKPq-CvJBg1s0OHfWxnd_SV9cIIHsXJLwWb3FEn9RFQ5jqcqoVz3MG8R5yWZQ/exec";
-const MAX_PUNTOS = 100; // últimas 100 filas desde Sheets
+const MAX_PUNTOS = 100;
 
-/* —— HISTORIAL EN MEMORIA —— */
 const hist = { h:[], temp:[], hum:[], pres:[], lluvia:[] };
 let tempMin = null, tempMax = null, fechaHoy = new Date().toDateString();
 let graficoActivo = 'temp', miChart = null;
 
 /* —— ESTADO CLIMÁTICO —— */
 function obtenerEstado(t, hu, v, ll) {
-  if (ll > 0)           return { emoji:"🌧️", texto:"Lluvia" };
-  if (v  > 40)          return { emoji:"💨", texto:"Ventoso" };
-  if (hu > 85 && t > 20)return { emoji:"🌫️", texto:"Muy húmedo" };
-  if (t  > 30)          return { emoji:"🔥", texto:"Muy caluroso" };
-  if (t  > 25)          return { emoji:"☀️", texto:"Caluroso" };
-  if (t  > 18)          return { emoji:"🌤️", texto:"Agradable" };
-  if (t  > 10)          return { emoji:"☁️", texto:"Fresco" };
-  return                       { emoji:"❄️", texto:"Frío" };
+  if (ll > 0)            return { emoji:"🌧️", texto:"Lluvia" };
+  if (v  > 40)           return { emoji:"💨", texto:"Ventoso" };
+  if (hu > 85 && t > 20) return { emoji:"🌫️", texto:"Muy húmedo" };
+  if (t  > 30)           return { emoji:"🔥", texto:"Muy caluroso" };
+  if (t  > 25)           return { emoji:"☀️", texto:"Caluroso" };
+  if (t  > 18)           return { emoji:"🌤️", texto:"Agradable" };
+  if (t  > 10)           return { emoji:"☁️", texto:"Fresco" };
+  return                        { emoji:"❄️", texto:"Frío" };
 }
 
-/* —— SENSACIÓN TÉRMICA (fórmula mejorada) ——
-   Rothfusz para calor, Wind Chill para frío con viento */
+/* —— SENSACIÓN TÉRMICA —— */
 function sensacion(t, hu, v) {
   let st;
   if (t >= 27) {
-    // Heat Index de Rothfusz (resultado en °C)
     st = -8.78469475556
       + 1.61139411*t + 2.33854883889*hu
       - 0.14611605*t*hu - 0.012308094*t*t
@@ -507,20 +510,18 @@ function sensacion(t, hu, v) {
       + 0.00072546*t*hu*hu
       - 0.000003582*t*t*hu*hu;
   } else if (t <= 10 && v > 4.8) {
-    // Wind Chill (viento en km/h)
     st = 13.12 + 0.6215*t
        - 11.37*Math.pow(v, 0.16)
        + 0.3965*t*Math.pow(v, 0.16);
   } else {
-    // Aproximación combinada
     st = t + 0.33*(hu/100*6.112*Math.exp(17.67*t/(t+243.5))/(t+273)) - 4;
   }
   return st.toFixed(1);
 }
 
-/* —— ÍNDICE DE CALOR (badge de riesgo) —— */
+/* —— ÍNDICE DE CALOR —— */
 function heatIndex(t, hu) {
-  if (t < 27) return null; // no aplica bajo 27 °C
+  if (t < 27) return null;
   const hi = -8.78469475556
     + 1.61139411*t + 2.33854883889*hu
     - 0.14611605*t*hu - 0.012308094*t*t
@@ -528,10 +529,10 @@ function heatIndex(t, hu) {
     + 0.002211732*t*t*hu
     + 0.00072546*t*hu*hu
     - 0.000003582*t*t*hu*hu;
-  if (hi < 32) return { texto:"Confort normal",       clase:"bajo" };
-  if (hi < 41) return { texto:"Precaución: calor",    clase:"moderado" };
-  if (hi < 54) return { texto:"⚠ Precaución extrema", clase:"alto" };
-  return              { texto:"🔴 Peligro por calor",  clase:"extremo" };
+  if (hi < 32) return { texto:"Confort normal",        clase:"bajo" };
+  if (hi < 41) return { texto:"Precaución: calor",     clase:"moderado" };
+  if (hi < 54) return { texto:"⚠ Precaución extrema",  clase:"alto" };
+  return              { texto:"🔴 Peligro por calor",   clase:"extremo" };
 }
 
 /* —— ALERTA SUPERIOR —— */
@@ -557,7 +558,6 @@ function alerta(t, v, ll) {
     txt.innerText  = `Temperatura extrema · ${t}°C — Mantenerse hidratado`;
   }
 
-  // Bajar el nav si hay alerta visible
   nav.style.top = banner.classList.contains("visible")
     ? banner.offsetHeight + "px" : "0";
 }
@@ -565,12 +565,12 @@ function alerta(t, v, ll) {
 /* —— FONDO DINÁMICO —— */
 function fondo(t, ll) {
   document.body.classList.remove('calor','frio','lluvia');
-  if (ll > 0)     document.body.classList.add('lluvia');
+  if (ll > 0)      document.body.classList.add('lluvia');
   else if (t > 25) document.body.classList.add('calor');
   else if (t < 12) document.body.classList.add('frio');
 }
 
-/* —— MÍNIMA / MÁXIMA DEL DÍA —— */
+/* —— MÍNIMA / MÁXIMA —— */
 function minMax(t) {
   const hoy = new Date().toDateString();
   if (hoy !== fechaHoy) { tempMin = null; tempMax = null; fechaHoy = hoy; }
@@ -580,30 +580,25 @@ function minMax(t) {
   document.getElementById("temp-max").innerText = tempMax;
 }
 
-/* —— CONFIGURACIÓN DE GRÁFICOS —— */
+/* —— GRÁFICOS —— */
 const GCFG = {
-  temp:   { label:"Temperatura (°C)", color:"#fb923c", fill:"rgba(251,146,60,.15)",   key:"temperatura" },
-  hum:    { label:"Humedad (%)",       color:"#38bdf8", fill:"rgba(56,189,248,.15)",   key:"humedad"     },
-  pres:   { label:"Presión (hPa)",     color:"#a78bfa", fill:"rgba(167,139,250,.15)",  key:"presion"     },
-  lluvia: { label:"Lluvia (mm)",       color:"#60a5fa", fill:"rgba(96,165,250,.15)",   key:"lluvia"      },
+  temp:   { label:"Temperatura (°C)", color:"#fb923c", fill:"rgba(251,146,60,.15)",  key:"temperatura" },
+  hum:    { label:"Humedad (%)",       color:"#38bdf8", fill:"rgba(56,189,248,.15)",  key:"humedad"     },
+  pres:   { label:"Presión (hPa)",     color:"#a78bfa", fill:"rgba(167,139,250,.15)", key:"presion"     },
+  lluvia: { label:"Lluvia (mm)",       color:"#60a5fa", fill:"rgba(96,165,250,.15)",  key:"lluvia"      },
 };
 
-/* —— CARGAR HISTORIAL DESDE GOOGLE SHEETS —— */
-// Se llama al cargar la página y cada 5 minutos
 function cargarHistorial() {
   fetch(API + "?modo=historial")
     .then(r => r.json())
     .then(filas => {
       if (!filas || filas.length === 0) return;
-
-      // Reconstruir el objeto hist con los datos reales del Sheets
       hist.h      = filas.map(f => f.hora);
       hist.temp   = filas.map(f => f.temperatura);
       hist.hum    = filas.map(f => f.humedad);
       hist.pres   = filas.map(f => f.presion);
       hist.lluvia = filas.map(f => parseFloat(f.lluvia) || 0);
 
-      // Actualizar mínima y máxima con todos los datos del historial
       hist.temp.forEach(t => {
         if (tempMin === null || t < tempMin) tempMin = t;
         if (tempMax === null || t > tempMax) tempMax = t;
@@ -611,16 +606,11 @@ function cargarHistorial() {
       document.getElementById("temp-min").innerText = tempMin;
       document.getElementById("temp-max").innerText = tempMax;
 
-      // Dibujar el gráfico con los datos reales
       grafico();
     })
-    .catch(() => {
-      // Si falla la carga del historial, no romper la página
-      console.log("No se pudo cargar el historial");
-    });
+    .catch(() => console.log("No se pudo cargar el historial"));
 }
 
-/* —— DIBUJAR GRÁFICO —— */
 function grafico() {
   const canvas = document.getElementById("miGrafico");
   const empty  = document.getElementById("chart-empty");
@@ -694,12 +684,13 @@ function actualizar() {
   fetch(API)
     .then(r => r.json())
     .then(d => {
-      const t  = d.temperatura;
-      const hu = d.humedad;
-      const v  = d.viento;
-      const vr = d.rafaga || 0;
-      const p  = d.presion;
-      const ll = d.lluvia || 0;
+      const t   = d.temperatura;
+      const hu  = d.humedad;
+      const v   = d.viento;
+      const vr  = d.rafaga      || 0;
+      const p   = d.presion;
+      const ll  = parseFloat(d.lluvia)      || 0;  // acumulado del día
+      const llt = parseFloat(d.lluviaTasa)  || 0;  // mm/h ahora mismo
 
       // Temperatura
       document.getElementById("temp").innerText = t;
@@ -725,23 +716,30 @@ function actualizar() {
         badge.style.display = "none";
       }
 
-      // Cards
+      // Cards básicas
       document.getElementById("hum").innerText    = hu;
       document.getElementById("hum-bar").style.width = hu + "%";
       document.getElementById("viento").innerText = v;
       document.getElementById("rafaga").innerText = vr;
       document.getElementById("pres").innerText   = p;
+
+      // Lluvia — acumulado del día
       document.getElementById("lluvia").innerText = ll;
+
+      // Lluvia — tasa actual (mm/h) como subtexto
+      document.getElementById("lluvia-tasa").innerText = llt + " mm/h ahora";
+
+      // Badge "Lloviendo ahora" — solo visible si tasa > 0
+      const badgeLluvia = document.getElementById("lluvia-activa");
+      badgeLluvia.style.display = llt > 0 ? "inline-block" : "none";
 
       // Hora
       document.getElementById("hora").innerText =
         "Última actualización: " + new Date().toLocaleTimeString('es-AR');
 
-      // Fondo + alerta
+      // Fondo + alerta (usa acumulado para alerta)
       fondo(t, ll);
       alerta(t, Math.max(v, vr), ll);
-
-      // El gráfico se carga desde Sheets (ver cargarHistorial)
 
       // Ocultar loading
       document.getElementById("loader").classList.add("hidden");
@@ -755,7 +753,6 @@ function actualizar() {
 actualizar();
 setInterval(actualizar, 60000);
 
-// Cargar historial al abrir la página y refrescar cada 5 minutos
 cargarHistorial();
 setInterval(cargarHistorial, 5 * 60 * 1000);
 </script>
